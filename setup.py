@@ -1,9 +1,22 @@
 #-*- coding: utf8 -*-
-import setuplib
-from distutils.core import setup
+import os
+import setuptools
+from setuptools import setup
 
-VERSION = '0.1a'
+VERSION = '0.3a0'
+AUTHOR = 'Fábio Macêdo Mendes'
 setup_kwds = {}
+
+#
+# Create meta.py file with updated version/author info
+#
+base, _ = os.path.split(__file__)
+path = os.path.join(base, 'src', 'smallvectors', 'meta.py')
+with open(path, 'w') as F:
+    F.write(
+        '# Auto-generated file. Please do not edit'
+        '__version__ = %r\n' % VERSION +
+        '__author__ = %r\n' % AUTHOR)
 
 
 #
@@ -13,7 +26,7 @@ setup(
     name='smallvectors',
     version=VERSION,
     description='Efficient linear algebra in low dimensions',
-    author='Fábio Macêdo Mendes',
+    author=AUTHOR,
     author_email='fabiomacedomendes@gmail.com',
     url='https://github.com/fabiommendes/smallshapes',
     long_description=(
@@ -33,12 +46,13 @@ Includes:
         'Intended Audience :: Developers',
         'License :: OSI Approved :: GNU General Public License (GPL)',
         'Operating System :: POSIX',
+        'Operating System :: WINDOWS',
         'Programming Language :: Python',
         'Topic :: Software Development :: Libraries',
     ],
 
     package_dir={'': 'src'},
-    packages=setuplib.get_packages('src'),
+    packages=setuptools.find_packages(),
     license='GPL',
-    requires=['six'],
+    requires=['six', 'pygeneric'],
 )

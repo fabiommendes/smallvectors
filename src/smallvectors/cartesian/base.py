@@ -7,122 +7,19 @@ import abc
 import math
 import numbers
 import six
-from smallvectors.metatypes import VecOrPointMeta
+from smallvectors.core import VecOrPointMeta, Flat
+from smallvectors.generics import add, sub, mul, div
+from smallvectors.generics import (promote, promote_list, convert_list,
+                                   set_promotion_function)
 
-
-PROMOTION_RULES = {}
 VALID_ELEMENT_TYPES = set()
 FORBIDDEN_ELTYPES = {list, tuple, str}
-CONVERT_RULES = {}
 
-
-def convert(ret_type, value):
-    '''Convert value to the given return type.
-
-    It raises a TypeError if no conversion is possible and a ValueError if
-    conversion is possible in general, but not for the specific value given.'''
-
-    try:
-        converter = CONVERT_RULES[ret_type, type(value)]
-    except KeyError:
-        fmt = type(value).__name__, ret_type.__name__
-        raise TypeError('no conversion found from %s to %s' % fmt)
-    else:
-        return converter(value)
-
-
-def define_conversion(from_type, to_type, function):
-    '''Register a function that convert between the two given types'''
-
-    # Forbid redefinitions
-    if (from_type, to_type) in CONVERT_RULES:
-        fmt = from_type.__name__, to_type.__name__
-        raise ValueError('cannot overwrite convertion from %s to %s' % fmt)
-
-    CONVERT_RULES[from_type, to_type] = function
-
-
-def promote_type(T1, T2):
-    '''Promote two types to the type which has highest resolution. Raises a
-    TypeError if promotion was not found'''
-
-    # Fast track common types
-    if T1 is float and T2 is int:
-        return float
-    if T2 is float and T1 is int:
-        return float
-
-    # Check the promotions dictionary
-    try:
-        return PROMOTION_RULES[T1, T2]
-    except KeyError:
-        pass
-
-    # Check if types are the same
-    if T1 is T2:
-        return T1
-
-    aux = (T1.__name__, T2.__name__)
-    raise TypeError('no promotion rule found for %s and %s' % aux)
-
-
-def promote_value(value, T):
-    '''Promote two types to the type which has highest resolution. Raises a
-    TypeError if promotion was not found'''
-
-    cls = type(value)
-
-    # Fast track common types
-    if cls is float and T is int:
-        return value
-    if T is float and cls is int:
-        return float(value)
-
-    # Check the promotions dictionary
-    try:
-        return PROMOTION_RULES[cls, T](value)
-    except KeyError:
-        pass
-
-    # Check if types are the same
-    if cls is T:
-        return value
-
-    aux = (cls.__name__, T.__name__)
-    raise TypeError('no promotion rule found for %s and %s' % aux)
-
-
-def select_type(values):
-    '''Return the best (most generic) type from a list of values'''
-
-    if not values:
-        raise ValueError('empty list')
-
-    values = iter(values)
-    ret_type = type(next(values))
-
-    for value in values:
-        tt = type(value)
-        if tt is not ret_type:
-            ret_type = promote_type(tt, ret_type)
-
-    assert ret_type in VALID_ELEMENT_TYPES, ret_type
-    return ret_type
-
-
-def define_promotion(T1, T2, T3, converter=None):
-    '''Define the promotion rule for the pair (T1, T2)'''
-
-    if not (T3 is T1 or T3 is T2):
-        raise ValueError('must promote to either T1 or T2')
-    PROMOTION_RULES[T1, T2] = PROMOTION_RULES[T2, T1] = T3
-
-    for T in [T1, T2, T3]:
-        VALID_ELEMENT_TYPES.add(T)
-
-define_promotion(float, int, float)
-define_promotion(float, float, float)
-define_promotion(int, int, int)
+#
+# Some aliases
+#
+make_new = object.__new__
+flat_from_list = Flat.from_list_unsafe
 
 
 class VecOrPointMixin(object):
@@ -147,27 +44,34 @@ class VecOrPointMixin(object):
     _fast_number = (float, int)
 
     def __new__(cls, *args, dtype=None):
-        # Prevent creation of zero-dimensional vectors
-        if len(args) == 0:
-            raise ValueError('no components were given! '
-                             'zero dimensional objects are not allowed')
+        if cls.is_root:
+            # Prevent creation of zero-dimensional vectors
+            if len(args) == 0:
+                raise ValueError('no components were given! '
+                                 'zero dimensional objects are not allowed')
 
-        if dtype is None:
-            if cls.is_root():
-                dtype = select_type(args)
-                base_class = cls[len(args), dtype or float]
+            # Find the correct type
+            if dtype is not None:
+                vec_t = cls[len(args), dtype]
             else:
-                return cls.from_flat(args)
+                try:
+                    args = promote_list(args)
+                except (TypeError, ValueError):
+                    vec_t = cls[len(args), object]
+                else:
+                    vec_t = cls[len(args), type(args[0])]
 
-        elif cls.is_root():
-            base_class = cls[len(args), dtype or float]
+            return vec_t(*args)
 
-        if dtype in FORBIDDEN_ELTYPES:
-            clsname = cls.__name__
-            elname = dtype.__name__
-            raise TypeError('%s elements cannot be %s' % (clsname, elname))
+        elif dtype is None or dtype is cls.dtype:
+            data = convert_list(args, cls.dtype)
+            return cls.from_flat_list_unsafe(data)
 
-        return base_class.from_flat(args)
+        else:
+            if not isinstance(dtype, type):
+                raise TypeError('dtype must be a type')
+            fmt = cls.full_name, dtype.__name__
+            raise TypeError('%s cannot set dtype to %s' % fmt)
 
     #
     # Class constructors
@@ -178,7 +82,7 @@ class VecOrPointMixin(object):
         '''Initializes from flattened data. For vectors and points, this is
         equivalent as obj.from_seq(data)'''
 
-        if cls.is_root():
+        if cls.is_root:
             return cls[len(data), dtype].from_flat(data)
         elif len(data) == cls.size:
             new = object.__new__(cls)
@@ -188,6 +92,17 @@ class VecOrPointMixin(object):
             fmt = cls.shape[0], data
             msg = 'wrong number of dimensions: expect %sD, got %r' % fmt
             raise ValueError(msg)
+
+    @classmethod
+    @abc.abstractmethod
+    def from_flat_list_unsafe(cls, data):
+        '''Initializes from a list of flattened data of the correct type. This
+        is not checked for performance reasons. The user should only use this
+        function if it can assure this property for the input data'''
+
+        new = make_new(cls)
+        new.flat = flat_from_list(data)
+        return new
 
     @classmethod
     def from_seq(cls, data, dtype=None):
@@ -223,6 +138,15 @@ class VecOrPointMixin(object):
         '''Returns a copy of object as a point'''
 
         return self.point_type(self)
+
+    def convert(self, dtype):
+        '''Convert object to the given data type'''
+
+        cls = type(self)
+        if dtype is self.dtype:
+            return self
+        else:
+            return cls.root(*self, dtype=dtype)
 
     #
     # Geometric properties
@@ -419,71 +343,97 @@ class AnyVecMixin(VecOrPointMixin):
     #
     # Arithmetic operations
     #
-    def _find_common_type(self, other):
-        if isinstance(other, tuple):
-            return self, self.from_seq(other)
-        elif isinstance(other, Vec):
-            # FIXME: make it right!
-            return self, Vec(*other, dtype=float)
-        raise ValueError(other)
-
     def __mul__(self, other):
         if isinstance(other, self._number):
             dtype = self.dtype
             otype = type(other)
+            data = [x * other for x in self]
             if dtype is otype:
-                return Vec.from_seq([x * other for x in self], dtype=dtype)
+                return self.from_flat_list_unsafe(data)
             else:
-                return Vec.from_seq([x * other for x in self])
-        else:
-            return NotImplemented
+                return mul(self, other)
+        return NotImplemented
 
     def __rmul__(self, other):
         return self * other
 
     def __div__(self, other):
-        return self.from_seq([x / other for x in self])
+        dtype = self.dtype
+        otype = type(other)
+        data = [x / other for x in self]
+        if dtype is otype:
+            return self.from_flat_list_unsafe(data)
+        else:
+            return mul(self, other)
 
-    def __truediv__(self, other):
-        return self.from_seq([x / other for x in self])
+    __truediv__ = __div__
 
     def __add__(self, other):
-        T_self = self.__class__
-        T_other = other.__class__
+        T_self = type(self)
+        T_other = type(other)
 
-        if T_self is T_other or issubclass(T_other, T_self):
-            return self.__add_same__(other)
+        # Two operands of the same or compatible (subclass) types
+        if (T_self is T_other) or issubclass(T_other, T_self):
+            data = [x + y for (x, y) in zip(self, other)]
+            return T_self.from_flat_list_unsafe(data)
+
+        # Two vector types of different dimensions or different element types
+        elif isinstance(other, Vec):
+            if self.shape != other.shape:
+                N, M = self.shape[0], other.shape[0]
+                raise TypeError('operation only defined for vectors of same '
+                                'dimensions: got %sD vs %sD' % (N, M))
+
+            A, B = promote(self, other)
+            return A + B
+
+        # Dispatch to other combinations of types
         else:
-            A, B = self._find_common_type(other)
-            return A.__add_same__(B)
-
-    def __add_same__(self, other):
-        data = [x + y for (x, y) in zip(self, other)]
-        return Vec.from_seq(data, dtype=self.dtype)
+            return add(self, other)
 
     def __radd__(self, other):
         return other + self
 
     def __sub__(self, other):
-        T_self = self.__class__
-        T_other = other.__class__
+        T_self = type(self)
+        T_other = type(other)
 
-        if T_self is T_other or issubclass(T_other, T_self):
-            return self.__sub_same__(other)
+        # Two operands of the same or compatible (subclass) types
+        if (T_self is T_other) or issubclass(T_other, T_self):
+            data = [x - y for (x, y) in zip(self, other)]
+            return T_self.from_flat_list_unsafe(data)
+
+        # Two vector types of different dimensions or different element types
+        elif isinstance(other, Vec):
+            if self.shape != other.shape:
+                N, M = self.shape[0], other.shape[0]
+                raise TypeError('operation only defined for vectors of same '
+                                'dimensions: got %sD vs %sD' % (N, M))
+
+            A, B = promote(self, other)
+            return A - B
+
+        # Dispatch to other combinations of types
         else:
-            A, B = self._find_common_type(other)
-            return A.__sub_same__(B)
-
-    def __sub_same__(self, other):
-        data = [x - y for (x, y) in zip(self, other)]
-        return Vec.from_seq(data, dtype=self.dtype)
+            return sub(self, other)
 
     def __rsub__(self, other):
-        self._assure_match(other)
-        return self.to_vector([x - y for (x, y) in zip(other, self)])
+        # Two vector types of different dimensions or different element types
+        if isinstance(other, Vec):
+            if self.shape != other.shape:
+                N, M = self.shape[0], other.shape[0]
+                raise TypeError('operation only defined for vectors of same '
+                                'dimensions: got %sD vs %sD' % (N, M))
+
+            A, B = promote(self, other)
+            return B - A
+
+        # Dispatch to other combinations of types
+        else:
+            return sub(other, self)
 
     def __neg__(self):
-        return self.from_flat([-x for x in self])
+        return self.from_flat_list_unsafe([-x for x in self])
 
     def __nonzero__(self):
         return True
@@ -531,7 +481,8 @@ class AnyVecMixin(VecOrPointMixin):
 @six.add_metaclass(VecOrPointMeta)
 class Vec(AnyVecMixin):
 
-    '''Base class for all immutable vector types. Each dimension and type'''
+    '''Base class for all immutable vector types. Each dimension and type have
+    its own related class. '''
 
 
 class Direction(Vec):
@@ -609,37 +560,87 @@ class mPoint(AnyPoint):
     '''A mutable point type'''
 
 
-#
-# Late binding
-#
-# Add Vec, Point and Direction as forbidden element types
-FORBIDDEN_ELTYPES.add(Vec)
-FORBIDDEN_ELTYPES.add(Point)
-FORBIDDEN_ELTYPES.add(Direction)
+@set_promotion_function(Vec, Vec)
+def promote_vectors(u, v):
+    '''Promote two Vec types to the same type'''
 
-#
-# Classe
-#
-assert isinstance(Vec, VecOrPointMeta)
-assert Vec[2, float] is Vec[2, float]
-assert Vec[2].shape == (2,)
-# assert Vec(1, 2).dtype is object  # ???
+    u_type = type(u)
+    v_type = type(v)
+    if u_type is v_type:
+        return (u, v)
 
-# Comparações
-u = Vec(1, 2)
-v = Vec(3, 4)
-assert Vec(1, 2) == Vec(1, 2)
-assert Vec(1, 2, dtype=float) == Vec(1, 2, dtype=int)
+    # Test shapes
+    if u_type.shape != v_type.shape:
+        raise TypeError('vectors have different shapes')
 
-# Mathematical operations
-assert u + v == Vec(4, 6)
-assert u - v == Vec(-2, -2)
-assert 2 * u == Vec(2, 4)
+    # Fasttrack common cases
+    u_dtype = u.dtype
+    v_dtype = v.dtype
+    if u_dtype is float and v_dtype is int:
+        return u, v.convert(float)
+    elif u_dtype is int and v_dtype is float:
+        return u.convert(float), v
+
+    zipped = [promote(x, y) for (x, y) in zip(u, v)]
+    u = Vec(*[x for (x, y) in zipped])
+    v = Vec(*[y for (x, y) in zipped])
+    return u, v
 
 
-u3 = Vec(1, 2, 3)
-#u3 + u
+@add.overload((Vec, tuple))
+@add.overload((Vec, list))
+def add_tuple(u, v):
+    return u + Vec(*v)
+
+
+@add.overload((tuple, Vec))
+@add.overload((list, Vec))
+def radd_tuple(u, v):
+    return add_tuple(v, u)
+
 
 if __name__ == '__main__':
     import doctest
     doctest.testmod()
+
+    #
+    # Classe
+    #
+    assert isinstance(Vec, VecOrPointMeta)
+    assert Vec[2, float] is Vec[2, float]
+    assert Vec[2].shape == (2,)
+
+    # Comparações
+    u = Vec(1, 2)
+    v = Vec(3, 4)
+    w = Vec(1.0, 2)
+    u_type = type(u)
+    v_type = type(v)
+    sum_type = type(u + v)
+    assert u.dtype is int
+    assert w.dtype is float
+    assert (u + w).dtype is float, (u + w).dtype
+    assert Vec(1, 2) == Vec(1, 2)
+    assert Vec(1, 2, dtype=float) == Vec(1, 2, dtype=int)
+    assert u_type is v_type
+    assert u_type is v_type is sum_type
+
+    # Mathematical operations
+    assert u + v == Vec(4, 6)
+    assert u - v == Vec(-2, -2)
+    assert 2 * u == Vec(2, 4)
+
+    # Operations with tuples and other objects
+    assert u == (1, 2)
+    assert u + (1, 2) == (2, 4)
+    assert u * 1 == u
+    assert 1 * u == u
+
+    u3 = Vec(1, 2, 3)
+
+    import time
+    print(type(u), type(v), type(u + v))
+    u_list = [u] * 100000
+    t0 = time.time()
+    sum(u_list, v)
+    print(time.time() - t0)

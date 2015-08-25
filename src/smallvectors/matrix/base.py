@@ -1,14 +1,11 @@
 # -*- coding: utf8 -*-
-from smallvectors import asvector, vector, Vec
+from smallvectors.generics import add, mul, overload
+from smallvectors import asvector, Vec
 
 __all__ = ['Matrix']
 number = (float, int)
 
 
-###############################################################################
-#                            Matriz 2 x 2
-###############################################################################
-# TODO: parametrizable type?
 class Matrix(object):
 
     '''Generic matrix interface
@@ -42,16 +39,16 @@ class Matrix(object):
 
     Onde multiplicação por vetores também é aceita
 
-    >>> v = vector(2, 3)
+    >>> v = Vec(2, 3)
     >>> matrix * v
-    Vec2(8, 18)
+    Vec(8, 18)
 
     Note que não existem classes especializadas para vetores linha ou coluna.
     Deste modo, sempre assumimos o formato que permite realizar a
     multiplicação.
 
     >>> v * matrix   # agora v é tratado como um vetor linha
-    Vec2(11, 16)
+    Vec(11, 16)
 
     Além disto, temos operações como cálculo da inversa, autovalores,
     determinante, etc
@@ -110,20 +107,20 @@ class Matrix(object):
 
     @classmethod
     def from_rows(cls, rows):
-        '''Build matrix from a sequence of row vectors'''
+        '''Build matrix from a sequence of row Vecs'''
 
         N = len(rows)
         matrix = len(rows[0])
         data = []
         for row in rows:
             if len(row) != matrix:
-                raise ValueError('vectors must be of same length')
+                raise ValueError('Vecs must be of same length')
             data.extend(row)
         return cls.from_flat(data, N, matrix)
 
     @classmethod
     def from_cols(cls, cols):
-        '''Build matrix from a sequence of column vectors'''
+        '''Build matrix from a sequence of column Vecs'''
 
         return cls.from_rows(cols).T
 
@@ -162,7 +159,7 @@ class Matrix(object):
     is_mutable = False
 
     #
-    # Return row vectors or column vectors
+    # Return row Vecs or column Vecs
     #
     def as_lists(self):
         '''Return matrix data as a list of lists'''
@@ -195,13 +192,13 @@ class Matrix(object):
             yield (i, j), value
 
     def col(self, i):
-        '''Return the i-th column vector'''
+        '''Return the i-th column Vec'''
 
         matrix = self.n_cols
         return asvector(self.flat[i::matrix])
 
     def row(self, i):
-        '''Return the i-th row vector.
+        '''Return the i-th row Vec.
 
         Same as matrix[i], but exists for symmetry with the matrix.col(i)
         method.'''
@@ -211,14 +208,14 @@ class Matrix(object):
         return asvector(self.flat[start:start + matrix])
 
     def colvecs(self):
-        '''Return list of all column vectors'''
+        '''Return list of all column Vecs'''
 
         matrix = self.n_cols
         data = self.flat
         return [asvector(data[i::matrix]) for i in range(matrix)]
 
     def rowvecs(self):
-        '''Return list of all row vectors. Same as list(matrix)'''
+        '''Return list of all row Vecs. Same as list(matrix)'''
 
         return list(self)
 
@@ -530,7 +527,7 @@ class SquareMatrix(Matrix):
         return sum(i * N + i for i in range(N))
 
     def diag(self):
-        '''Return a vector with the diagonal elements of the matrix'''
+        '''Return a Vec with the diagonal elements of the matrix'''
 
         N = self.n_rows
         data = self.flat
@@ -763,11 +760,20 @@ class mMat2():
         super(Mat2, self).__init__(data, 2, 2)
 
 
+@overload(mul, (Matrix, Vec))
+def mul_matrix_Vec(M, v):
+    return NotImplemented
+
+
+@overload(mul, (Vec, Matrix))
+def mul_Vec_matrix(v, M):
+    return NotImplemented
+
 if __name__ == '__main__':
     import doctest
     doctest.testmod()
 
-    u = vector(1, 2)
+    u = Vec(1, 2)
     matrix = Mat2([1, 2, 3, 4])
     print(matrix)
     print(matrix * matrix)

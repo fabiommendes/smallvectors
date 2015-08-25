@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 '''
-Exemple
+Example
 -------
 
 Criamos um vetor chamando a classe com as componentes como argumento.

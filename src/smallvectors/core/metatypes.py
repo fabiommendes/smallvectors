@@ -8,7 +8,6 @@ The ``smallvectors`` package puts objects into a hierarchy...
 
 
 '''
-EMPTY = object()  # constant
 import six
 
 ###############################################################################
@@ -16,13 +15,12 @@ import six
 ###############################################################################
 #
 # The smallvectors package makes an extensive use of metaclasses that probably
-# needs some explanation. First, almost all types in the smallvectors package
-# can be parametrized generating different subtypes. For instance, the ``Vec``
-# type is an abstract type and the concrete incarnations are created using
-# ``Vec[N, T]``, by parametrizing the number of components N and element type
-# T. In order for this to work, we need a ``VecMeta`` class that overrides
-# __getitem__ in order to implement the correct behavior. Other metaclass
-# overrides are also necessary, but let us keep it simple for now.
+# needs some explanation. First, many types can be parametrized generating
+# different subtypes. For instance, ``Vec`` is an abstract type and the
+# concrete incarnations are created using ``Vec[N, T]``, for the number of
+# components N and element type T. In order for this to work, we need a
+# ``VecMeta`` class that overrides __getitem__ in order to implement the
+# correct behavior.
 #
 # A lot of this functionality can be shared between most of smallvector types
 # such as Vec, Point, Mat, Affine, Quaternion, etc. However, each of these
@@ -37,6 +35,8 @@ BaseMeta = None
 
 class MetaMeta(type):
 
+    '''The meta meta class ensures that metaclasses are initialized properly'''
+
     def __new__(cls, name, bases, namespace):
         # Check if metaclass is sane
         if len(bases) > 1:
@@ -50,7 +50,7 @@ class MetaMeta(type):
         new = type.__new__(cls, name, bases, namespace)
 
         # Check if it has the necessary attributes and return
-        if BaseMeta in bases and new.ndims is EMPTY:
+        if BaseMeta in bases and new.ndims is None:
             raise ValueError('ndims class attribute must be specified')
 
         return new
@@ -63,19 +63,12 @@ class BaseMeta(type):
     define concrete parametrized types in the smallvectors package type
     hierarchy.
 
-    BaseMeta subclasses must be declared using the following syntax::
-
-        @BaseMeta.declare_meta(ndims=1)
-        class VecMeta(type):
-            ...
-
-    The documentation of BaseMeta.declare() shows the optional parameters
-    that can be passed to the class constructor.
-
     BaseMeta implements the __getitem__ functionality that allows root types to
     be subscriptable. VecMeta thus is the metaclass for the abstract Vec type.
-    Vec[N, T] produces a subclass of Vec that is a concrete type which can be
-    instantiated.
+    Vec[N, T] calls the __getitem__ method defined in the VecMeta class and
+    produces a subclass of Vec that is a concrete type which can be
+    instantiated. Upon creation of a new subtype, some type attributes are set
+    to the correct value.
     '''
 
     def __new__(cls, name, bases, namespace):
@@ -90,10 +83,11 @@ class BaseMeta(type):
     #
     # Attributes
     #
-    ndims = EMPTY
-    root = EMPTY
-    shape = EMPTY
-    dtype = EMPTY
+    ndims = None
+    root = None
+    shape = None
+    dtype = None
+    is_root = True
 
     @property
     def argnames(self):
@@ -109,19 +103,18 @@ class BaseMeta(type):
     def root_name(self):
         return self.__root__.__name__
 
+    @property
+    def full_name(self):
+        return '%s[%s]' % (self.root_name, ', '.join(self.argnames))
+
     #
     # Methods
     #
-    def is_root(self):
-        '''Return True if metatype is the root type'''
-
-        return self.__root__ is self
-
     def new_subtype(self, shape, dtype, bases=()):
         '''Create a new parametric type with the given arguments without fully
         initializing it'''
 
-        if not self.is_root():
+        if not self.is_root:
             raise ValueError('only the root type can be parametrized')
         root = self
         cache = root.__subtypes__
@@ -145,11 +138,14 @@ class BaseMeta(type):
                 shape=shape,
                 size=multiply(shape),
                 dtype=dtype,
+                root=root,
+                is_root=False,
             )
 
             # Save in cache and return
             subtype = type.__new__(type(root), name, bases, namespace)
             cache[shape, dtype] = subtype
+            subtype.__name__ = subtype.full_name
             return subtype
 
     def __getitem__(self, idx):
@@ -177,7 +173,7 @@ class BaseMeta(type):
 
     def __repr__(self):
         base = super(BaseMeta, self).__repr__()
-        if self.is_root():
+        if self.is_root:
             return base
         else:
             qualname = '%s.%s' % (self.__module__, self.__qualname__)
@@ -188,7 +184,7 @@ class BaseMeta(type):
 
 
 ###############################################################################
-#                          Vec/Point types metaclasses
+#                         Metaclasses for specific types
 ###############################################################################
 #
 # Mixin classes
@@ -199,6 +195,7 @@ class VecOrPointMeta(BaseMeta):
 
     ndims = 1
 
+    # TODO: convert to lazy properties
     #
     # These variables were defined for late binding. We shall assign the
     # correct values when the Vec, Point and Direction root classes exist
@@ -217,6 +214,13 @@ class VecOrPointMeta(BaseMeta):
         new._direction_from_flat = new._direction_type.from_flat
         new._point_type = self._point_root.__new_subtype__(args)
         new._point_from_flat = new._point_type.from_flat
+
+
+class MatMeta(BaseMeta):
+
+    '''Metaclass for the Mat class'''
+
+    ndims = 2
 
 
 ###############################################################################

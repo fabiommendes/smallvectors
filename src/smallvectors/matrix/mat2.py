@@ -411,6 +411,6 @@ class mMat2(Mat2):
 #               Código injetado para rodar no modo interpretado
 ###############################################################################
 
-if __name__ == '__main__' and not C.compiled:
+if __name__ == '__main__':
     import doctest
     doctest.testmod()

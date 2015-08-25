@@ -1,0 +1,17 @@
+eclipse.preferences.version=1
+encoding//src/smallvectors/affine/affine.py=utf8
+encoding//src/smallvectors/arithmetic.py=utf8
+encoding//src/smallvectors/array.py=utf8
+encoding//src/smallvectors/cartesian/base.py=utf8
+encoding//src/smallvectors/cartesian/dim2.py=utf8
+encoding//src/smallvectors/cartesian/dim3.py=utf8
+encoding//src/smallvectors/cartesian/dim4.py=utf8
+encoding//src/smallvectors/matrix/base.py=utf8
+encoding//src/smallvectors/matrix/mat2.py=utf8
+encoding//src/smallvectors/matrix/mat3.py=utf8
+encoding//src/smallvectors/quaternion.py=utf8
+encoding//src/smallvectors/testing/vector_tests.py=utf8
+encoding//src/smallvectors/tools.py=utf8
+encoding//src/smallvectors/util.py=utf8
+encoding//src/smallvectors/vecarray.py=utf8
+encoding/setup.py=utf8

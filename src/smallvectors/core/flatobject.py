@@ -55,6 +55,19 @@ class Flat(collections.Sequence):
     def __init__(self, data):
         self._data = list(data)
 
+    @classmethod
+    def from_list_unsafe(cls, L):
+        '''Create a new Flat object from a list without copying it. This
+        method should only be called if the Flat object can claim ownership
+        of the input list.
+
+        There is no guarantee that the flat object will share data with the
+        list and caller must not use the input list elsewhere.'''
+
+        new = object.__new__(cls)
+        new._data = L
+        return new
+
     def __repr__(self):
         return 'flat([%s])' % (', '.join(map(repr, self)))
 
