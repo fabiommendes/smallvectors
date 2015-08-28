@@ -5,7 +5,6 @@ from setuptools import setup
 
 VERSION = '0.3a0'
 AUTHOR = 'Fábio Macêdo Mendes'
-setup_kwds = {}
 
 #
 # Create meta.py file with updated version/author info
@@ -14,7 +13,7 @@ base, _ = os.path.split(__file__)
 path = os.path.join(base, 'src', 'smallvectors', 'meta.py')
 with open(path, 'w') as F:
     F.write(
-        '# Auto-generated file. Please do not edit'
+        '# Auto-generated file. Please do not edit\n'
         '__version__ = %r\n' % VERSION +
         '__author__ = %r\n' % AUTHOR)
 
@@ -46,7 +45,6 @@ Includes:
         'Intended Audience :: Developers',
         'License :: OSI Approved :: GNU General Public License (GPL)',
         'Operating System :: POSIX',
-        'Operating System :: WINDOWS',
         'Programming Language :: Python',
         'Topic :: Software Development :: Libraries',
     ],

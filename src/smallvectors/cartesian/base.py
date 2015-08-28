@@ -8,7 +8,7 @@ import math
 import numbers
 import six
 from smallvectors.core import VecOrPointMeta, Flat
-from smallvectors.generics import add, sub, mul, div
+from smallvectors.generics import add, sub, mul, div, ArithmeticGeneric
 from smallvectors.generics import (promote, promote_list, convert_list,
                                    set_promotion_function)
 
@@ -22,7 +22,7 @@ make_new = object.__new__
 flat_from_list = Flat.from_list_unsafe
 
 
-class VecOrPointMixin(object):
+class VecOrPointMixin(ArithmeticGeneric):
 
     '''Common implementations for Vec and Point types'''
 
@@ -351,11 +351,21 @@ class AnyVecMixin(VecOrPointMixin):
             if dtype is otype:
                 return self.from_flat_list_unsafe(data)
             else:
-                return mul(self, other)
-        return NotImplemented
+                return Vec.from_flat(data)
+
+        return mul(self, other)
 
     def __rmul__(self, other):
-        return self * other
+        if isinstance(other, self._number):
+            dtype = self.dtype
+            otype = type(other)
+            data = [x * other for x in self]
+            if dtype is otype:
+                return self.from_flat_list_unsafe(data)
+            else:
+                return Vec.from_flat(data)
+
+        return mul(other, self)
 
     def __div__(self, other):
         dtype = self.dtype
@@ -599,6 +609,18 @@ def radd_tuple(u, v):
     return add_tuple(v, u)
 
 
+@sub.overload((Vec, tuple))
+@sub.overload((Vec, list))
+def sub_tuple(u, v):
+    return u - Vec(*v)
+
+
+@sub.overload((tuple, Vec))
+@sub.overload((list, Vec))
+def rsub_tuple(u, v):
+    return add_tuple(u + (-v))
+
+
 if __name__ == '__main__':
     import doctest
     doctest.testmod()
@@ -629,6 +651,7 @@ if __name__ == '__main__':
     assert u + v == Vec(4, 6)
     assert u - v == Vec(-2, -2)
     assert 2 * u == Vec(2, 4)
+    assert 2.0 * u == Vec(2.0, 4.0)
 
     # Operations with tuples and other objects
     assert u == (1, 2)
@@ -644,3 +667,6 @@ if __name__ == '__main__':
     t0 = time.time()
     sum(u_list, v)
     print(time.time() - t0)
+
+    print(Vec.mro())
+    print(Vec[2, int].mro())

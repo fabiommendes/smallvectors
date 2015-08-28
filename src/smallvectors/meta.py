@@ -1,2 +1,3 @@
-__version__ = '0.2a0'
+# Auto-generated file. Please do not edit
+__version__ = '0.3a0'
 __author__ = 'Fábio Macêdo Mendes'
