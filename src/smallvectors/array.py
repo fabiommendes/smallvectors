@@ -62,14 +62,14 @@ if __name__ == '__main__':
     doctest.testmod()
 
     from nose import runmodule
-    from FGAme.mathutils.unittests import aUnittest, TestCase
+    from FGAme.mathutils.unittests import ArithmeticUnittest, TestCase
 
-    class ArrayTester(aUnittest, TestCase):
-        test_type = Array
+    class ArrayTester(ArithmeticUnittest, TestCase):
+        obj_type = Array
         str_equality = True
 
         def names(self):
-            new = self.test_type
+            new = self.obj_type
             a = new([0, 1, 2])
             b = new([3, 4, 5])
             m = 2

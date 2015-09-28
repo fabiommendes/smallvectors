@@ -3,7 +3,6 @@
 from collections import MutableSequence
 from smallvectors.array import Array
 from smallvectors import Vec, asvector
-#from smallvectors.util import args_to_vec2
 
 __all__ = ['VecArray']
 
@@ -27,7 +26,7 @@ class VecArray(MutableSequence):
         Sob muitos aspectos, um VecArray funciona como uma lista de vetores
 
         >>> a[0], a[1]
-        (Vec(0, 0), Vec(1, 0))
+        (Vec[2, int](0, 0), Vec[2, int](1, 0))
 
         As operações matemáticas ocorrem termo a termo
 
@@ -43,8 +42,11 @@ class VecArray(MutableSequence):
 
         self._data = list(asvector(x) for x in data)
 
-    def _new(self, data):
-        return self.__class__(data)
+    @classmethod
+    def _new(cls, data):
+        new = cls.__new__(cls)
+        new._data = data
+        return new
 
     def as_tuple(self):
         '''Retorna uma lista de tuplas'''
@@ -74,12 +76,12 @@ class VecArray(MutableSequence):
             self._data[:] = [u.rotate(theta) for u in self._data]
         else:
             v = asvector(axis)
-            #self._data[:] = [v + R * (u - v) for u in self._data]
             self._data[:] = [v + (u - v).rotate(theta) for u in self._data]
 
     def move(self, x_or_delta, y=None):
-        delta = args_to_vec2(x_or_delta, y)
-        self._data[:] = [u + delta for u in self._data]
+        if y is not None:
+            x_or_delta = Vec(x_or_delta, y)
+        self._data[:] = [u + x_or_delta for u in self._data]
 
     # Métodos mágicos #########################################################
     def __len__(self):
@@ -89,7 +91,7 @@ class VecArray(MutableSequence):
         '''x.__repr__() <==> repr(x)'''
 
         tname = type(self).__name__
-        data = ', '.join([str(v.as_tuple()) for v in self])
+        data = ', '.join([str(tuple(v)) for v in self])
         return '%s([%s])' % (tname, data)
 
     def __str__(self):
@@ -102,7 +104,7 @@ class VecArray(MutableSequence):
     def __getitem__(self, i):
         '''x.__getitem__(i) <==> x[i]'''
 
-        return Vec(self._data[i])
+        return self._data[i]
 
     def __setitem__(self, i, value):
         self._data[i].update(value)
@@ -134,8 +136,8 @@ class VecArray(MutableSequence):
     def __add__(self, other):
         '''x.__add__(y) <==> x + y'''
 
-        other = Vec(other)
-        return self._new(u + other for u in self._data)
+        other = asvector(other)
+        return self._new([u + other for u in self._data])
 
     def __radd__(self, other):
         '''x.__radd__(y) <==> y + x'''
@@ -145,13 +147,13 @@ class VecArray(MutableSequence):
     def __sub__(self, other):
         '''x.__sub__(y) <==> x - y'''
 
-        other = Vec(other)
+        other = asvector(other)
         return self._new(u - other for u in self._data)
 
     def __rsub__(self, other):
         '''x.__rsub__(y) <==> y - x'''
 
-        other = Vec(other)
+        other = asvector(other)
         return self._new(other - u for u in self._data)
 
     def __neg__(self):

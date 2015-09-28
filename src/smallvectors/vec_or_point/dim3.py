@@ -31,7 +31,7 @@ Vec3(0.3, 0.7, 0.7)
 
 import cython as C
 import math as m
-from smallvectors.cartesian import Vec, Direction, Point
+from . import Vec, Direction, Point
 
 
 class Base3D(object):

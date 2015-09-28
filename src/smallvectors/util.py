@@ -77,16 +77,16 @@ def vector(*args):
         return VecND(*args)
 
 
-def norm(vec):
+def norm(Vec):
     '''Return the norm of a vector'''
 
     try:
-        return vec.norm()
+        return Vec.norm()
     except AttributeError:
-        if isinstance(vec, tuple):
-            return m.sqrt(sum(x * x for x in vec))
+        if isinstance(Vec, tuple):
+            return m.sqrt(sum(x * x for x in Vec))
         else:
-            tname = type(vec).__name__
+            tname = type(Vec).__name__
             raise TypeError('norm is not defined for %s object' % tname)
 
 

@@ -4,11 +4,26 @@
 testing vectors
 '''
 
-from math import pi, sqrt
-from FGAme.util import lazy
+from math import pi
 from nose.tools import raises, assert_almost_equal, assert_almost_equals
-import nose
 from unittest import TestCase
+from smallvectors import Vec
+
+
+class lazy(object):
+
+    '''Implementa uma propriedade "preguiçosa": ela é calculada apenas durante o
+    primeiro uso e não durante a inicialização do objeto.'''
+
+    def __init__(self, force):
+        self.force = force
+
+    def __get__(self, obj, cls=None):
+        if obj is None:
+            return self
+        value = self.force(obj)
+        setattr(obj, self.force.__name__, value)
+        return value
 
 
 class Immutable(object):
@@ -22,75 +37,7 @@ class Immutable(object):
     def v(self):
         return self.vector(2, 1)
 
-    # Construtores ############################################################
-    def test_init_pos(self):
-        assert self.vector(1, 2) == self.vector(1.0, 2.0) == (1, 2)
-
-    def test_init_seq(self):
-        assert self.vector(1, 2) == self.vector((1, 2))
-
-    # Comparação com tuplas ###################################################
-    def test_tuple_compare(self):
-        assert self.vector(1, 2) == (1, 2)
-        assert (1, 2) == self.vector(1, 2)
-
-    # Operações matemáticas ###################################################
-    def test_add(self):
-        v1 = self.vector(1, 2)
-        v2 = self.vector(2, 1)
-        assert v1 + v2 == self.vector(3, 3)
-        assert v1 + (2, 1) == self.vector(3, 3)
-        assert (2, 1) + v1 == self.vector(3, 3)
-
-    def test_sub(self):
-        v1 = self.vector(1, 2)
-        v2 = self.vector(2, 1)
-        assert v1 - v2 == self.vector(-1, 1)
-        assert v1 - (2, 1) == self.vector(-1, 1)
-        assert (1, 2) - v2 == self.vector(-1, 1)
-
-    def test_mul(self):
-        v = self.vector(1, 2)
-        assert v * 2 == (2, 4)
-        assert 2 * v == (2, 4)
-
-    def test_linear(self):
-        v1 = self.vector(1, 2)
-        v2 = self.vector(2, 1)
-        assert v1 + 2 * v2 == (5, 4)
-
-    def test_div(self):
-        v = self.vector(2, 4)
-        assert v / 2 == (1, 2)
-
-    def test_neg(self):
-        v = self.vector(1, 2)
-        assert -v == (-1, -2)
-
     # Operações matemáticas inválidas #########################################
-    @raises(TypeError)
-    def test_add_scalar(self):
-        self.vector(1, 2) + 1
-
-    @raises(TypeError)
-    def test_sub_scalar(self):
-        self.vector(1, 2) - 1
-
-    @raises(TypeError)
-    def test_mul_tuple(self):
-        self.vector(1, 2) * (1, 2)
-
-    @raises(TypeError)
-    def test_mul_vec(self):
-        self.vector(1, 2) * self.vector(1, 2)
-
-    @raises(TypeError)
-    def test_div_vec_vec(self):
-        self.vector(1, 2) / self.vector(1, 2)
-
-    @raises(TypeError)
-    def test_div_num_vec(self):
-        1 / self.vector(1, 2)
 
     # Propriedades de vetores e operações geométricas #########################
     def test_vector_norm(self):
@@ -179,8 +126,8 @@ class Mutable(Immutable):
 ###############################################################################
 
 
-# class CVectorTest(Immutable, TestCase):
-#    from FGAme.mathutils.cvector import Vec2 as vector
+class FloatVecTest(Immutable, TestCase):
+    vector = Vec[2, float]
 
 
 # class CVectorMTest(Mutable, TestCase):
@@ -195,5 +142,9 @@ class Mutable(Immutable):
 #    from FGAme.mathutils.vector import mVec2 as vector
 
 
+u = Vec(1, 2)
+print(u * u)
+
 if __name__ == '__main__':
+    import nose
     nose.runmodule('__main__')

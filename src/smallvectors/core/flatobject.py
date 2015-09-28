@@ -52,8 +52,11 @@ class Flat(collections.Sequence):
 
     __slots__ = '_data'
 
-    def __init__(self, data):
-        self._data = list(data)
+    def __init__(self, data, copy=True):
+        if copy:
+            self._data = list(data)
+        else:
+            self._data = data
 
     @classmethod
     def from_list_unsafe(cls, L):
@@ -98,7 +101,7 @@ class MutableFlat(Flat):
     '''An user-mutable flat object. Used to implement the mutable versions of
     ``smallvectors`` objects.'''
 
-    __slots__ = []
+    __slots__ = ()
 
     def __setitem__(self, idx, value):
         self.__flat_setitem__(idx, value)
@@ -112,7 +115,7 @@ class FlatView(Flat):
     owner to flat and from flat to owner respectivelly. An explicit size can
     also be given.'''
 
-    __slots__ = ['_owner', '_owner_index', '_flat_index', '_size']
+    __slots__ = ('_owner', '_owner_index', '_flat_index', '_size')
 
     def __init__(self, owner, size=None, flat_index=None, owner_index=None):
         self._owner = owner

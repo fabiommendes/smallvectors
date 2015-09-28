@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 
 import math as m
-from smallvectors.cartesian import Vec
+from .. import Vec
 Vec2 = Vec[2, float]
 
 __all__ = ['Mat2', 'RotMat2', 'mMat2']
@@ -47,14 +47,14 @@ class Mat2(object):
 
     >>> v = Vec2(2, 3)
     >>> M * v
-    Vec2(8, 18)
+    Vec[2, float](8.0, 18.0)
 
     Note que não existem classes especializadas para vetores linha ou coluna.
     Deste modo, sempre assumimos o formato que permite realizar a
     multiplicação.
 
     >>> v * M   # agora v é tratado como um vetor linha
-    Vec2(11, 16)
+    Vec[2, float](11.0, 16.0)
 
     Além disto, temos operações como cálculo da inversa, autovalores,
     determinante, etc
@@ -170,7 +170,7 @@ class Mat2(object):
         multiplicar o autovetor pelo autovalor correspondente
 
         >>> M * v1, vals[0] * v1
-        (Vec2(2.2, 4.9), Vec2(2.2, 4.9))
+        (Vec[2, float](2.2347269761835324, 4.885427510286349), Vec[2, float](2.2347269761835324, 4.885427510286349))
         '''
 
         v1, v2 = self.eigvec()

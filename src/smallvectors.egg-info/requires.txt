@@ -1,0 +1,2 @@
+six
+pygeneric>=0.1.1

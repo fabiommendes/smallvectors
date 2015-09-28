@@ -2,7 +2,9 @@
 
 import operator
 
-identity = lambda x: x
+
+def identity(x):
+    return x
 
 
 class AbstractArray(object):

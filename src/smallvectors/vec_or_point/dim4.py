@@ -31,7 +31,7 @@ Vec4(0.5, 0.5, 0.5, 0.5)
 
 import cython as C
 import math as m
-from smallvectors.cartesian import Vec, Direction, Point
+from . import Vec, Direction, Point
 
 
 class Base4D(object):

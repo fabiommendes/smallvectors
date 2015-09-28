@@ -15,11 +15,11 @@ class Quaternion(object):
         if len(args) == 1:
             return self.__init__(*args)
         elif len(args) == 2:
-            s, vec = args
+            s, Vec = args
         else:
             s, x, y, z = args
-            vec = Vec3(x, y, z)
-        super(Quaternion, self).__init__(s, vec)
+            Vec = Vec3(x, y, z)
+        super(Quaternion, self).__init__(s, Vec)
 
     @classmethod
     def from_rotation(cls, theta, axis):

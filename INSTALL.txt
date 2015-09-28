@@ -1,0 +1,33 @@
+Dependencies
+============
+
+`smallvectors` can run in many Python implementations including CPython and 
+PyPy. In CPython it can be installed as a (slow) pure-python version or it
+can use compiled extensions to speed-up things in C. This is done using Cython 
+and it is highly recommended that a C compiler and Python development headers 
+are installed prior to building the `smallvectors` library. The speed-ups can 
+be dramatic.
+
+The library depends on the `pygeneric` and `six` packages available at PyPI.
+
+
+Installation commands
+=====================
+
+If you downloaded a compressed package, simply unpack it and execute the 
+regular Python install::
+
+    $ python setup.py build
+    $ sudo python setup.py install
+
+This package is also available at PyPI and hence can be installed using `pip`::
+
+    $ sudo pip install smallvectors
+
+This is the recommended way since it automatically install all dependencies.
+
+In Windows the command would be something like this (adapt for the correct 
+Python installation path)::
+
+    $ cd c:\python34
+    $ python -m pip install smallvectors

@@ -33,7 +33,7 @@ def asvector(v):
     if isinstance(v, Vec):
         return v
     else:
-        return Vec.from_seq(v)
+        return Vec(*v)
 
 
 def aspoint(v):
@@ -42,7 +42,7 @@ def aspoint(v):
     if isinstance(v, Point):
         return v
     else:
-        return Point.from_seq(v)
+        return Point(*v)
 
 
 def asdirection(v):
@@ -51,11 +51,11 @@ def asdirection(v):
     if isinstance(v, Direction):
         return v
     else:
-        return Direction.from_seq(v)
+        return Direction(*v)
 
 
 # TODO: move to smallvectors
-def dot(v1, v2):
+def dot(u, v):
     '''Calcula o produto escalar entre dois vetores
 
     Exemplo
@@ -63,33 +63,30 @@ def dot(v1, v2):
 
     >>> dot((1, 2), (3, 4))
     11
-
-    >>> dot(Vec2(1, 2), Vec2(3, 4))
-    11.0
     '''
 
     try:
-        A = v1
-        B = v2
-        return A.x * B.x + A.y * B.y
-    except (AttributeError, TypeError):
-        return sum(x * y for (x, y) in zip(v1, v2))
+        return u.dot(v)
+    except AttributeError:
+        pass
+
+    try:
+        return v.dot(u)
+    except AttributeError:
+        pass
+
+    if len(u) == len(v):
+        return sum(x * y for (x, y) in zip(u, v))
+    else:
+        raise ValueError('length mismatch: %s and %s')
 
 
 def cross(v1, v2):
     '''Retorna a compontente z do produto vetorial de dois vetores
     bidimensionais'''
 
-    try:
-        A = v1
-        B = v2
-        x1 = A.x
-        y1 = A.y
-        x2 = B.x
-        y2 = B.x
-    except (AttributeError, TypeError):
-        x1, y1 = v1
-        x2, y2 = v2
+    x1, y1 = v1
+    x2, y2 = v2
     return x1 * y2 - x2 * y1
 
 

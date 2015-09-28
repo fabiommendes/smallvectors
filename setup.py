@@ -3,14 +3,14 @@ import os
 import setuptools
 from setuptools import setup
 
-VERSION = '0.3a0'
+#
+# Read VERSION from file and write it in the appropriate places
+#
 AUTHOR = 'Fábio Macêdo Mendes'
-
-#
-# Create meta.py file with updated version/author info
-#
-base, _ = os.path.split(__file__)
-path = os.path.join(base, 'src', 'smallvectors', 'meta.py')
+BASE, _ = os.path.split(__file__)
+with open(os.path.join(BASE, 'VERSION')) as F:
+    VERSION = F.read().strip()
+path = os.path.join(BASE, 'src', 'smallvectors', 'meta.py')
 with open(path, 'w') as F:
     F.write(
         '# Auto-generated file. Please do not edit\n'
@@ -28,17 +28,7 @@ setup(
     author=AUTHOR,
     author_email='fabiomacedomendes@gmail.com',
     url='https://github.com/fabiommendes/smallshapes',
-    long_description=(
-        r'''A lightweight library that implements linear algebra operations
-in low dimensions. These objects were create to be used in a game engine, but
-may be useful elsewhere.
-
-Includes:
-    * Vector, point and direction types
-    * Arbitrary shape matrix types and some specialized matrices
-    * Affine transforms
-    * Quaternions
-    '''),
+    long_description=open(os.path.join(BASE, 'README.txt')).read(),
 
     classifiers=[
         'Development Status :: 3 - Alpha',
@@ -50,7 +40,7 @@ Includes:
     ],
 
     package_dir={'': 'src'},
-    packages=setuptools.find_packages(),
+    packages=setuptools.find_packages('src'),
     license='GPL',
-    requires=['six', 'pygeneric'],
+    install_requires=['six', 'pygeneric>=0.1.1'],
 )
