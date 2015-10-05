@@ -765,6 +765,8 @@ def mul_matrix_Vec(M, v):
 def mul_Vec_matrix(v, M):
     return NotImplemented
 
+Vec._rotmatrix = Mat
+
 if __name__ == '__main__':
     u = Vec(1, 2)
     matrix = Mat([1, 2], [3, 4])

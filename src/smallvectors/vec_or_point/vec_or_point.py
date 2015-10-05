@@ -17,7 +17,8 @@ class VecOrPoint(BaseAbstractType):
     __COORDINATE_NAMES = {0: 'x', 1: 'y', 2: 'z', 3: 'w'}
     __PROPERTIES = {}
     __slots__ = ()
-
+    _rotmatrix = None
+    
     #
     # Factory functions (Attribute access)
     #
@@ -141,7 +142,19 @@ class VecOrPoint(BaseAbstractType):
         '''The midpoint to `other`. The same as ``obj.lerp(other, 0.5)``'''
 
         return (self + other) / 2
-
+    
+    def displaced(self, *args):
+        '''Return a copy of object displaced by the given ammount.'''
+        
+        if len(args) == 1:
+            args = args[0]
+        return self + args
+        
+    def moved(self, *args):
+        '''An alias to obj.displaced()'''
+        
+        return self.displaced(*args)
+    
     #
     # Arithmetical operations overrides
     #

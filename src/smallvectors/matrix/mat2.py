@@ -22,7 +22,7 @@ class Mat2(object):
     Criamos uma matriz a partir de uma lista de listas
 
     >>> M = Mat2([[1, 2],
-    ...             [3, 4]])
+    ...           [3, 4]])
 
     Podemos também utilizar classes especializadas, como por exemplo
     a `RotMat2`, que cria uma matriz de rotação
@@ -169,8 +169,8 @@ class Mat2(object):
         Finalmente, multiplicamos M por v1: o resultado deve ser igual que
         multiplicar o autovetor pelo autovalor correspondente
 
-        >>> M * v1, vals[0] * v1
-        (Vec[2, float](2.2347269761835324, 4.885427510286349), Vec[2, float](2.2347269761835324, 4.885427510286349))
+        >>> M * v1 == vals[0] * v1
+        True
         '''
 
         v1, v2 = self.eigvec()
@@ -203,7 +203,7 @@ class Mat2(object):
         except ZeroDivisionError:
             v2 = Vec2(1, 0)
 
-        return v1.normalize(), v2.normalize()
+        return v1.normalized(), v2.normalized()
 
     # Métodos que retornam versões transformadas ##############################
     def transpose(self):

@@ -90,17 +90,17 @@ def norm(Vec):
             raise TypeError('norm is not defined for %s object' % tname)
 
 
-def normalize(obj):
+def normalized(obj):
     '''Return a normalized version of vector or tuple'''
 
     try:
-        return obj.normalize()
+        return obj.normalized()
     except AttributeError:
         if isinstance(obj, tuple):
             return asvector(obj)
         else:
             tname = type(obj).__name__
-            raise TypeError('normalize is not defined for %s object' % tname)
+            raise TypeError('normalized is not defined for %s object' % tname)
 
 
 ###############################################################################

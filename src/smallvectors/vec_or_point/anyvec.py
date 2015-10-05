@@ -22,18 +22,18 @@ class AnyVec(VecOrPoint):
         cos_t = self.dot(other) / (self.norm() * Z)
         return self._acos(cos_t)
 
-    def reflect(self, direction):
+    def reflected(self, direction):
         '''Reflect vector around the given direction'''
 
         return self - 2 * (self - self.project(direction))
 
-    def project(self, direction):
+    def projection(self, direction):
         '''Returns the projection vector in the given direction'''
 
         direction = self.to_direction(direction)
         return self.dot(direction) * direction
 
-    def clamp(self, min_length, max_length):
+    def clampped(self, min_length, max_length):
         '''Returns a new vector in which min <= abs(out) <= max.'''
 
         norm = new_norm = self.norm()
@@ -43,7 +43,7 @@ class AnyVec(VecOrPoint):
             new_norm = min_length
 
         if new_norm != norm:
-            return self.normalize() * new_norm
+            return self.normalized() * new_norm
         else:
             return self
 
@@ -55,20 +55,40 @@ class AnyVec(VecOrPoint):
             raise ValueError('dimension mismatch: %s and %s' % (N, M))
         return sum(x * y for (x, y) in zip(self, other))
 
-    def norm(self, method=None):
+    def norm(self, which=None):
         '''Returns the norm of a vector'''
 
         # TODO: different norms: euclidean, max, minkoski, etc
         return self._sqrt(self.norm_sqr())
 
-    def norm_sqr(self, method=None):
+    def norm_sqr(self, which=None):
         '''Returns the squared norm of a vector'''
 
-        if method is None:
+        if which is None:
             return sum(x * x for x in self)
         else:
-            super(AnyVec, self).norm_sqr(method)
+            super(AnyVec, self).norm_sqr(which)
 
+    def rotated(self, rotation):
+        '''Rotate vector by the given rotation object.
+        
+        The rotation can be specified in several ways which are dimension 
+        dependent. All vectors can be rotated by rotation matrices in any 
+        dimension. 
+    
+        In 2D, rotation can be a simple number that specifies the 
+        angle of rotation.   
+        '''
+        
+        if isinstance(rotation, self._rotmatrix):
+            return rotation * self
+        elif isinstance(rotation, self._number) and self.size == 2:
+            return self._rotated2D(rotation)
+        
+        tname = type(self).__name__
+        msg = 'invalid rotation object for %s: %r' % (tname, rotation)
+        raise TypeError(msg)
+    
     #
     # 2D specific functions
     #
@@ -80,7 +100,7 @@ class AnyVec(VecOrPoint):
         return cls(radius * cls._cos(theta), radius * cls._sin(theta))
 
     @conditional_method(lambda p: p[0] == 2)
-    def rotate(self, theta):
+    def _rotated2D(self, theta):
         '''Rotate vector by an angle theta around origin'''
 
         cls = type(self)
@@ -111,6 +131,24 @@ class mVec(AnyVec, Mutable):
 
     __slots__ = ()
 
+    def rotate(self, rotation):
+        '''Similar to obj.rotate(...), but make changes *INPLACE*'''
+        
+        value = self.rotated(rotation)
+        self[:] = value
+        
+    def move(self, *args):
+        '''Alias to obj.displace(...)'''
+        
+        self.displace(*args)
+    
+    def displace(self, *args):
+        '''Similar to obj.move(...), but make changes *INPLACE*'''
+        
+        if len(args) == 1:
+            args = args[0]
+        self += args
+        
 
 class Direction(Vec):
 
@@ -139,7 +177,7 @@ class Direction(Vec):
 
         return 1.0
 
-    def normalize(self):
+    def normalized(self):
         '''Return a normalized version of vector'''
 
         return self

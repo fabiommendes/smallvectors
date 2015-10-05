@@ -1,6 +1,7 @@
 #-*- coding: utf8 -*-
 import os
 import setuptools
+import sys
 from setuptools import setup
 
 #
@@ -17,6 +18,10 @@ with open(path, 'w') as F:
         '__version__ = %r\n' % VERSION +
         '__author__ = %r\n' % AUTHOR)
 
+#
+# Choose the default Python3 branch or the code converted by 3to2
+#
+PYSRC = 'src' if sys.version.startswith('3') else 'py2src'
 
 #
 # Main configuration script
@@ -39,8 +44,8 @@ setup(
         'Topic :: Software Development :: Libraries',
     ],
 
-    package_dir={'': 'src'},
-    packages=setuptools.find_packages('src'),
+    package_dir={'': PYSRC},
+    packages=setuptools.find_packages(PYSRC),
     license='GPL',
     install_requires=['six', 'pygeneric>=0.1.1'],
 )

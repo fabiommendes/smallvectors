@@ -110,9 +110,18 @@ class Vec2IntTest(ArithmeticUnittest):
         with self.assertRaises(TypeError):
             1 / self.u
 
+    def test_rotated_is_new(self):
+        assert self.u.rotated(1.0) is not self.u
+        
+    def test_rotated_keeps_norm(self):
+        for t in range(20):
+            Z1 = self.u.norm()
+            Z2 = self.u.rotated(6.28 * t / 20).norm()
+            assert abs(Z1 - Z2) < 1e-6, (Z1, Z2)
 
 class Vec2FloatTest(Vec2IntTest):
     obj_type = Vec[2, float]
+    
 
 
 # class Vec2DecimalTest(Vec2IntTest):

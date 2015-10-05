@@ -55,9 +55,9 @@ class Immutable(object):
 
     def test_normalized(self):
         v = self.vector(1, 2)
-        n = v.normalize()
+        n = v.normalized()
 
-        assert_almost_equal(v.normalize().norm(), 1)
+        assert_almost_equal(v.normalized().norm(), 1)
         assert_almost_equals(n.x * v.x + n.y * v.y, v.norm())
 
     # Interface Python ########################################################

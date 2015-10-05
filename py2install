@@ -1,0 +1,8 @@
+#!/bin/sh
+python3 setup.py install --user
+python3 -m smallvectors.tests &&
+rm py2src -rf &&
+cp src py2src -r &&
+3to2 py2src/ --no-diffs -j4 -w -f kwargs -f division &&
+python2 setup.py install --user &&
+python2 -m smallvectors.tests

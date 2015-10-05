@@ -33,7 +33,7 @@ from operator import mul
 from functools import reduce
 from generic import promote_type, convert, GenericObject
 from generic.operator import add
-from . import Flat, MutableFlat, privateclassmethod, binop_factory
+from . import Flat, mFlat, privateclassmethod, binop_factory
 from . import shape as get_shape, dtype as get_dtype
 
 
@@ -71,7 +71,7 @@ class BaseAbstractMeta(abc.ABCMeta):
 
 
 @six.add_metaclass(BaseAbstractMeta)
-class ABC(metaclass=BaseAbstractMeta):
+class ABC(object):
     """Helper class that provides a standard way to create an ABC using
     inheritance.
     """
@@ -201,10 +201,19 @@ class BaseAbstractType(ABC):
                     continue
 
             # Rebind classmethods
-            if isinstance(attr, types.MethodType):
+            if six.PY3 and isinstance(attr, types.MethodType):
                 attr = classmethod(attr.__func__)
 
-            methods[name] = attr
+            if six.PY3:
+                methods[name] = attr
+            else:
+                if isinstance(attr, types.MethodType):
+                    if attr.im_self is None:
+                        attr = attr.im_func
+                    else:
+                        attr = classmethod(attr.im_func)
+
+                methods[name] = attr
 
         if methods.get('__slots__', ()) == ():
             if 'flat' not in methods:
@@ -349,27 +358,38 @@ class BaseAbstractType(ABC):
 
         return all(x == 0.0 for x in self.flat)
 
-    def is_unity(self, tol=1e-6, method=None):
+    def is_unity(self, tol=1e-6, norm=None):
         '''Return True if the norm equals one within the given tolerance.
 
-        Object must define a ``norm`` method.'''
+        Object must define a normalization method `norm`.'''
 
-        norm = self.__norm(method)
-        return abs(norm - 1) < tol
+        value = self.norm(norm)
+        return abs(value - 1) < tol
 
-    def norm_sqr(self, method=None):
-        '''Returns the squared norm of object'''
+    def norm(self, which=None):
+        '''Returns the norm of an object.
+        
+        The `which` attribute controls the method used to compute the norm.'''
 
-        value = self.__norm(method)
+        tname = type(self).__name__
+        raise TypeError('%s object does not define a norm' % tname)
+
+    def norm_sqr(self, which=None):
+        '''Returns the squared norm of object.'''
+
+        value = self.norm(which)
         return value * value
 
-    def normalize(self, method=None):
+    def normalized(self, which=None):
         '''Return a normalized version of object.
 
-        Normalizes according to the given method'''
+        Normalizes according to the given method.'''
 
-        Z = self.__norm(method)
-        return (self / Z if Z != 0.0 else self)
+        try:
+            Z = self.norm(which)
+            return self / Z
+        except ZeroDivisionError:
+            return self
 
     #
     # Python protocols
@@ -412,6 +432,8 @@ class BaseAbstractType(ABC):
     __sub__, __rsub2__ = binop_factory(op.sub)
     __mul__, __rmul__ = binop_factory(op.mul)
     __truediv__, __rtruediv__ = binop_factory(op.truediv)
+    __div__ = __truediv__
+    __rdiv__ = __rtruediv__
 
     def __neg__(self):
         return self.from_flat([-x for x in self], copy=False)
@@ -428,25 +450,18 @@ class BaseAbstractType(ABC):
         else:
             return all(x == y for (x, y) in zip(self, other))
 
-    #
-    # Utility functions
-    #
-    def __norm(self, method):
-        try:
-            norm = self.norm
-        except AttributeError:
-            tname = type(self).__name__
-            raise AttributeError('%s object does not define a norm' % tname)
-        else:
-            return norm(method)
-
 
 class Mutable(BaseAbstractType):
     '''Base class for all mutable types'''
 
     __slots__ = ()
 
-    _flat = MutableFlat
+    _flat = mFlat
+    
+    def normalize(self, which=None):
+        '''Normalizes object *INPLACE* using the given method.'''
+
+        self /= self.norm(which)
 
 
 class Immutable(BaseAbstractType):

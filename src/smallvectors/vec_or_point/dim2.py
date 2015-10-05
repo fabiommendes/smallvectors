@@ -1,4 +1,3 @@
-# -*- coding: utf8 -*-
 '''
 Example
 -------
@@ -25,10 +24,9 @@ vetor unitário, etc.
 5.0
 5.0
 
->>> v.normalize()
-Vec[2, float](0.6000000000000001, 0.8)
+>>> v.normalized().almost_equal(Vec[2, float](0.6, 0.8))
+True
 '''
-from math import cos, sin, sqrt, atan2
 from generic import convert, GenericObject, get_conversion
 from ..core import Flat
 from . import AnyVec, Vec, mVec, Direction
@@ -85,7 +83,7 @@ class Base2D(GenericObject):
     # Performance overrides
     #
     def distance(self, other):
-        return sqrt((other.x - self._x) ** 2 + (other.y - self._y) ** 2)
+        return self._sqrt((other.x - self._x) ** 2 + (other.y - self._y) ** 2)
 
     def convert(self, dtype):
         _float = float
@@ -127,7 +125,7 @@ class VecBase2D(Base2D):
 
         cos_t = self.dot(other)
         sin_t = self.cross(other)
-        return atan2(sin_t, cos_t)
+        return self._atan2(sin_t, cos_t)
 
     #
     # 2D specific geometric properties and operations
@@ -135,7 +133,7 @@ class VecBase2D(Base2D):
     def polar(self):
         '''Return a tuple with the (radius, theta) polar coordinates '''
 
-        return (self.norm(), atan2(self._y, self._x))
+        return (self.norm(), self._atan2(self._y, self._x))
 
     def perp(self, ccw=True):
         '''Return the counterclockwise perpendicular vector.
@@ -148,20 +146,20 @@ class VecBase2D(Base2D):
         else:
             return self._from_coords_unsafe(self._y, -self._x)
 
-    def rotate(self, theta):
+    def rotated(self, theta):
         '''Rotate vector by an angle theta around origin'''
 
         x, y = self
-        cos_t, sin_t = cos(theta), sin(theta)
+        cos_t, sin_t = self._cos(theta), self._sin(theta)
         return self._from_coords_unsafe(
             x * cos_t - y * sin_t,
             x * sin_t + y * cos_t)
 
-    def rotate_axis(self, axis, theta):
+    def rotated_axis(self, axis, theta):
         '''Rotate vector around given axis by the angle theta'''
 
         dx, dy = self - axis
-        cos_t, sin_t = cos(theta), sin(theta)
+        cos_t, sin_t = self._cos(theta), self._sin(theta)
         return self._from_coords_unsafe(
             dx * cos_t - dy * sin_t + axis[0],
             dx * sin_t + dy * cos_t + axis[1])
@@ -186,21 +184,21 @@ class VecBase2D(Base2D):
 
         return abs(self._x * self._x + self._y * self._y - 1) < 2 * tol
 
-    def norm(self, method=None):
+    def norm(self, which=None):
         '''Returns the norm of a vector'''
 
-        if method is None:
-            return sqrt(self._x ** 2 + self._y ** 2)
+        if which is None:
+            return self._sqrt(self._x ** 2 + self._y ** 2)
         else:
-            return Vec.norm(self, method)
+            return Vec.norm(self, which)
 
-    def norm_sqr(self, method=None):
+    def norm_sqr(self, which=None):
         '''Returns the squared norm of a vector'''
 
-        if method is None:
+        if which is None:
             return self._x ** 2 + self._y ** 2
         else:
-            return Vec.norm(self, method)
+            return Vec.norm(self, which)
 
     def __add_similar__(self, other):
         return self._from_coords_unsafe(self._x + other._x, self._y + other._y)
@@ -229,18 +227,18 @@ class Direction2(VecBase2D):
     __slots__ = ()
 
     def __init__(self, x, y):
-        norm = sqrt(x * x + y * y)
+        norm = self._sqrt(x * x + y * y)
         if norm == 0:
             raise ValueError('null vector does not define a valid direction')
 
         self._x = x / norm
         self._y = y / norm
 
-    def rotate(self, theta):
+    def rotated(self, theta):
         '''Rotate vector by an angle theta around origin'''
 
         x, y = self
-        cos_t, sin_t = cos(theta), sin(theta)
+        cos_t, sin_t = self._cos(theta), self._sin(theta)
         new = Base2D.__new__(Direction2, x, y)
         new.x = x * cos_t - y * sin_t
         new.y = x * sin_t + y * cos_t

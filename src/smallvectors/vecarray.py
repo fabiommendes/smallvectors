@@ -62,10 +62,10 @@ class VecArray(MutableSequence):
 
         return Array([u.norm_sqr() for u in self._data])
 
-    def normalize(self):
+    def normalized(self):
         '''Retorna um vetor unitário'''
 
-        return VecArray([u.normalize() for u in self._data])
+        return VecArray([u.normalized() for u in self._data])
 
     def rotate(self, theta, axis=None):
         '''Retorna um vetor rotacionado por um ângulo theta'''
