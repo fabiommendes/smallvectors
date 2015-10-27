@@ -1,17 +1,15 @@
 from smallvectors.tests import ArithmeticUnittest, unittest
-from smallvectors import Vec, mVec, AnyVec, VecOrPoint
-
+from smallvectors import Vec, mVec, VecAny
 
 class VecClassTest(unittest.TestCase):
-
+    
     def test_class_is_type(self):
         u = Vec(1, 2)
         self.assertEqual(u.__class__, type(u))
 
     def test_subclass(self):
-        assert issubclass(Vec, AnyVec)
-        assert issubclass(mVec, AnyVec)
-        assert issubclass(AnyVec, VecOrPoint)
+        assert issubclass(Vec, VecAny)
+        assert issubclass(mVec, VecAny)
 
     def test_unique_subclass(self):
         assert Vec[2, float] is Vec[2, float]
@@ -19,11 +17,11 @@ class VecClassTest(unittest.TestCase):
 
     def test_class_parameters(self):
         vec2 = Vec[2, float]
-        assert vec2.shape == (2,)
-        assert vec2.size == 2
-        assert vec2.dtype == float
-        assert vec2.parameters == (2, float)
-        assert vec2.__name__ == 'Vec[2, float]'
+        self.assertEqual(vec2.shape, (2,))
+        self.assertEqual(vec2.size, 2)
+        self.assertEqual(vec2.dtype, float)
+        self.assertEqual(vec2.__parameters__, (2, float))
+        self.assertEqual(vec2.__name__, 'Vec[2, float]')
 
     def test_correct_type_promotion_on_vec_creation(self):
         assert isinstance(Vec(1, 2), Vec[2, int])
@@ -36,10 +34,10 @@ class VecClassTest(unittest.TestCase):
         assert Vec(1, 2) == Vec(1.0, 2.0)
 
     def test_vec_equality_with_tuples_and_lists(self):
-        assert Vec(1, 2) == [1, 2]
-        assert Vec(1, 2) == (1, 2)
-        assert Vec(1, 2) == [1.0, 2.0]
-        assert Vec(1, 2) == (1.0, 2.0)
+        self.assertEqual(Vec(1, 2), [1, 2])
+        self.assertEqual(Vec(1, 2), (1, 2))
+        self.assertEqual(Vec(1, 2), [1.0, 2.0])
+        self.assertEqual(Vec(1, 2), (1.0, 2.0))
 
     def test_reverse_vec_equality_with_tuples_and_lists(self):
         assert [1, 2] == Vec(1, 2)
@@ -118,15 +116,27 @@ class Vec2IntTest(ArithmeticUnittest):
             Z1 = self.u.norm()
             Z2 = self.u.rotated(6.28 * t / 20).norm()
             assert abs(Z1 - Z2) < 1e-6, (Z1, Z2)
+            
 
 class Vec2FloatTest(Vec2IntTest):
     obj_type = Vec[2, float]
     
 
+class Vec2Test(unittest.TestCase):
+    dtype = float
+    
+    def setUp(self):
+        self.cls = Vec[2, self.dtype]
+
+    def test_has_2d_methods(self):
+        for attr in ['perp', 'frompolar']:
+            assert hasattr(self.cls, attr), attr
+
 
 # class Vec2DecimalTest(Vec2IntTest):
 #    test_type = Vec[2, Decimal]
 
-
 if __name__ == '__main__':
     unittest.main()
+
+

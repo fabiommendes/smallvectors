@@ -71,6 +71,30 @@ def shape(data):
 
         return tuple(shape)
 
+class lazy(object):
+
+    '''Lazy accessor .'''
+
+    def __init__(self, func):
+        self.func = func
+
+    def __get__(self, obj, cls=None):
+        if obj is None:
+            return self
+        value = self.func(obj)
+        setattr(obj, self.func.__name__, value)
+        return value
+
+def share_origin(T1, T2):
+    '''Return True if the two types share the same origin'''
+    
+    if T1 is T2:
+        return True
+    try:
+        return T1.__origin__ is T2.__origin__
+    except AttributeError:
+        return False
+
 if __name__ == '__main__':
     assert dtype([1, 2, 3]) is int
     assert dtype([1, 2.0, 3]) is float

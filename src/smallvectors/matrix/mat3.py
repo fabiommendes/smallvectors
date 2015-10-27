@@ -84,7 +84,7 @@ class Mat3(object):
         return new
 
     @classmethod
-    def from_flat(cls, data):
+    def fromflat(cls, data):
         '''Constroi matriz a partir de dados linearizados'''
         return cls._from_flat(data, restype=cls)
 

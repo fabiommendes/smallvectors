@@ -3,11 +3,10 @@
 Affine operations
 '''
 
-from smallvectors import Matrix, vector, asvector, Vec, Vec2
+from smallvectors import Mat as Matrix, asvector, Vec
 
 
 class Affine(object):
-
     '''
     A generic affine transformation. Affine transformations are a combination
     of linear transformation + translation. A affine operation $A(v)$ in a
@@ -149,11 +148,11 @@ class Affine(object):
         if isinstance(matrix, Matrix):
             matrix = matrix
         else:
-            matrix = Matrix(matrix)
+            matrix = Matrix(*matrix)
 
         # linearize inputs and save in the flat attribute
         self.shape = matrix.shape
-        data = matrix.as_lists()
+        data = list(map(list, matrix))
         for x, L in zip(vector, data):
             L.append(x)
         self.flat = sum(data, [])
@@ -168,7 +167,7 @@ class Affine(object):
         return cls(matrix, vector)
 
     @classmethod
-    def from_flat(cls, flat, N, M):
+    def fromflat(cls, flat, N, M):
         '''Construct a new affine transformation from the flat data and the
         shape of the matrix part of the transform.'''
 
@@ -338,5 +337,9 @@ class Similarity(Affine):
 
 
 if __name__ == '__main__':
-    import doctest
-    doctest.testmod(optionflags=doctest.REPORT_ONLY_FIRST_FAILURE)
+    #import doctest
+    #doctest.testmod(optionflags=doctest.REPORT_ONLY_FIRST_FAILURE)
+
+
+    A = Affine([[1, 0], [0, 1]], [1, 2])
+    print(A)

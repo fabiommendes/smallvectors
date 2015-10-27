@@ -20,7 +20,7 @@ Vec[2, float](4.0, 6.0)
 
 from .meta import __version__, __author__
 from .sequence import seq
-from .vec_or_point import *
+from .vector import *
 from .matrix import *
 from .tools import *
 from .vecarray import *

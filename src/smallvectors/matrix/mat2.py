@@ -89,10 +89,10 @@ class Mat2(object):
         return new
 
     @classmethod
-    def from_flat(cls, data):
+    def fromflat(cls, data):
         '''Constroi matriz a partir de dados linearizados'''
 
-        return cls.from_flat(data, restype=cls)
+        return cls.fromflat(data, restype=cls)
 
     @classmethod
     def _from_flat(cls, data, restype=None):
@@ -205,7 +205,7 @@ class Mat2(object):
 
         return v1.normalized(), v2.normalized()
 
-    # Métodos que retornam versões transformadas ##############################
+    # Métodos que retornam versões transformadas
     def transpose(self):
         '''Retorna a transposta da matriz'''
 
@@ -345,8 +345,34 @@ class Mat2(object):
 
 
 ###############################################################################
-#                            Matriz de rotação
+#                            Matriz mutável
 ###############################################################################
+class mMat2(Mat2):
+
+    '''Versão mutável de Mat2'''
+
+    __slots__ = ['_data']
+
+    def __init__(self, data):
+        super(mMat2, self).__init__(data)
+        self._data = list(data)
+
+    def __setattr__(self, idx, value):
+        i, j = idx
+        self._data[i][j] = value
+
+    def irotate(self, theta):
+        '''Rotaciona a matriz *inplace*'''
+
+        R = RotMat2(theta)
+        self._data = (R * self * R.transpose())._data
+
+    def itranspose(self):
+        '''Transpõe a matriz *inplace*'''
+
+        self[1, 0], self[0, 1] = self[0, 1], self[1, 0]
+
+
 class RotMat2(Mat2):
 
     '''Cria uma matriz de rotação que realiza a rotação pelo ângulo theta
@@ -379,37 +405,7 @@ class RotMat2(Mat2):
         return self.theta
 
 
-###############################################################################
-#                            Matriz mutável
-###############################################################################
-class mMat2(Mat2):
 
-    '''Versão mutável de Mat2'''
-
-    __slots__ = ['_data']
-
-    def __init__(self, data):
-        super(mMat2, self).__init__(data)
-        self._data = list(data)
-
-    def __setattr__(self, idx, value):
-        i, j = idx
-        self._data[i][j] = value
-
-    def irotate(self, theta):
-        '''Rotaciona a matriz *inplace*'''
-
-        R = RotMat2(theta)
-        self._data = (R * self * R.transpose())._data
-
-    def itranspose(self):
-        '''Transpõe a matriz *inplace*'''
-
-        self[1, 0], self[0, 1] = self[0, 1], self[1, 0]
-
-###############################################################################
-#               Código injetado para rodar no modo interpretado
-###############################################################################
 
 if __name__ == '__main__':
     import doctest

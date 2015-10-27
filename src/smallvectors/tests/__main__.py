@@ -12,7 +12,6 @@ except ImportError:
 import doctest
 import sys
 
-
 def load_tests(loader, tests, ignore):
     prefix = mod_current.__name__
 

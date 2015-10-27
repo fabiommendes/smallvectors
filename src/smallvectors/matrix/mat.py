@@ -1,15 +1,15 @@
 # -*- coding: utf8 -*-
 from generic import overload, promote_type
 from generic.operator import mul
-from smallvectors.core import BaseAbstractType, shape, dtype, get_common_base, Immutable, Mutable
-from smallvectors import asvector, Vec
+from smallvectors.core import SmallVectorsBase, shape, dtype, get_common_base, Immutable, Mutable
+from smallvectors import Vec
 
 __all__ = ['Mat']
 number = (float, int)
 dtype_ = dtype
 
 
-class AnyMat(BaseAbstractType):
+class MatAny(SmallVectorsBase):
 
     '''Generic matrix interface
 
@@ -65,6 +65,7 @@ class AnyMat(BaseAbstractType):
     #(1.0, 1.0)
     '''
     __slots__ = ()
+    __parameters__ = (int, int, type)
 
     @classmethod
     def __abstract_new__(cls, *args, dtype=None):
@@ -97,7 +98,7 @@ class AnyMat(BaseAbstractType):
         return cls.from_diag([1] * N)
 
     @classmethod
-    def from_dict(cls, D):
+    def fromdict(cls, D):
         '''Build a matrix from a dictionary from indexes to values'''
 
         N = max(i for (i, _j) in D)
@@ -107,16 +108,10 @@ class AnyMat(BaseAbstractType):
             k = i * N + j
             data[k] = value
 
-        return cls.from_flat(data, N, matrix)
+        return cls.fromflat(data, N, matrix)
 
     @classmethod
-    def from_lists(cls, L):
-        '''Build matrix from a sequence of lists.'''
-
-        return cls.from_rows([asvector(Li) for Li in L])
-
-    @classmethod
-    def from_rows(cls, rows):
+    def fromrows(cls, rows):
         '''Build matrix from a sequence of row Vecs'''
 
         N = len(rows)
@@ -126,25 +121,17 @@ class AnyMat(BaseAbstractType):
             if len(row) != M:
                 raise ValueError('Vecs must be of same length')
             data.extend(row)
-        return cls.__root__[N, M, dtype(data)].from_flat(data)
+        return cls.__origin__[N, M, dtype(data)].fromflat(data)
 
     @classmethod
-    def from_cols(cls, cols):
+    def fromcols(cls, cols):
         '''Build matrix from a sequence of column Vecs'''
 
-        return cls.from_rows(cols).T
+        return cls.fromrows(cols).T
 
     #
     # Attributes
     #
-    @property
-    def shape(self):
-        return self.nrows, self.ncols
-
-    @property
-    def size(self):
-        return self.nrows * self.ncols
-
     @property
     def T(self):
         return self.transpose()
@@ -154,14 +141,23 @@ class AnyMat(BaseAbstractType):
     #
     # Return row Vecs or column Vecs
     #
-    def as_lists(self):
+    def aslists(self):
         '''Return matrix data as a list of lists'''
 
         return [list(row) for row in self]
 
-    def as_dict(self):
-        '''Return matrix data as a mapping from indexes to (non-null)
+    def asdict(self):
+        '''Return matrix data as a map from indexes to (non-null)
         values.'''
+        
+        D = {}
+        M, N = self.shape
+        for i in range(M):
+            for j in range(N):
+                value = self[i, j]
+                if value == 0:
+                    D[i, j] = value
+        return D  
 
     def items(self):
         '''Iterator over ((i, j), value) pairs.
@@ -291,7 +287,7 @@ class AnyMat(BaseAbstractType):
                 k = i * N + j
                 data[k] = value
 
-        return self.from_flat(data)
+        return self.fromflat(data)
 
     def mutable(self, D=None, **kwds):
         '''Like copy(), but always return a mutable object'''
@@ -301,7 +297,7 @@ class AnyMat(BaseAbstractType):
             return cp
         else:
             cls = mMat[self.nrows, self.ncols, self.dtype]
-            return cls.from_flat(list(cp.flat))
+            return cls.fromflat(list(cp.flat))
 
     def immutable(self, D=None, **kwds):
         '''Like copy(), but always return an immutable object'''
@@ -310,7 +306,7 @@ class AnyMat(BaseAbstractType):
         if not self.is_mutable:
             return cp
         else:
-            return cp._immutable_t.from_flat(cp.flat, *cp.shape)
+            return cp._immutable_t.fromflat(cp.flat, *cp.shape)
 
     def transpose(self):
         '''Return the transposed matrix
@@ -334,7 +330,7 @@ class AnyMat(BaseAbstractType):
         True
         '''
 
-        return self.from_rows(self.colvecs())
+        return self.fromrows(self.colvecs())
 
     def append_row(self, row):
         '''Return a new matrix with and extra row appended to the end.
@@ -344,7 +340,7 @@ class AnyMat(BaseAbstractType):
         N, matrix = self.shape
         data = list(self.flat)
         data.extend(row)
-        return self.from_flat(data, N + 1, matrix)
+        return self.fromflat(data, N + 1, matrix)
 
     def append_col(self, col, idx=-1):
         '''Return a new matrix with and extra column appended to the end.
@@ -353,15 +349,15 @@ class AnyMat(BaseAbstractType):
 
         if isinstance(col, Mat):
             matrix = col
-            out = self.as_lists()
+            out = self.aslists()
             for row, L in zip(matrix, out):
                 L.extend(row)
-            return self.from_lists(out)
+            return self.fromrows(out)
         else:
-            out = self.as_lists()
+            out = self.aslists()
             for x, L in zip(col, out):
                 L.append(x)
-            return self.from_lists(out)
+            return self.fromrows(out)
 
     def drop_col(self, idx=None):
         '''Return a pair (matrix, col) with the new matrix with the extra column
@@ -376,17 +372,17 @@ class AnyMat(BaseAbstractType):
 
         if idx is None:
             idx = -1
-        data = self.as_lists()
+        data = self.aslists()
         row = data.pop(idx)
-        return self.from_lists(data), asvector(row)
+        return self.fromlists(data), asvector(row)
 
     def select_cols(self, cols):
         '''Return a new matrix with the columns corresponding to the given
         sequence of indexes'''
 
         cols = tuple(cols)
-        data = [[L[i] for i in cols] for L in self.as_lists()]
-        return self.from_lists(data)
+        data = [[L[i] for i in cols] for L in self.aslists()]
+        return self.fromrows(data)
 
     #
     # Magic methods
@@ -443,21 +439,21 @@ class AnyMat(BaseAbstractType):
             return asvector([u.dot(other) for u in self.rowvecs()])
 
         elif isinstance(other, number):
-            return self.from_flat([x * other for x in self.flat], copy=False)
+            return self.fromflat([x * other for x in self.flat], copy=False)
 
         elif isinstance(other, Mat):
             cols = other.colvecs()
             rows = self.rowvecs()
             data = sum([[u.dot(v) for u in cols] for v in rows], [])
-            cls = self.__root__[len(rows), len(cols), dtype(data)]
-            return cls.from_flat(data, copy=False)
+            cls = self.__origin__[len(rows), len(cols), dtype(data)]
+            return cls.fromflat(data, copy=False)
 
         else:
             return NotImplemented
 
     def __rmul__(self, other):
         if isinstance(other, number):
-            return self.from_flat([x * other for x in self.flat], copy=False)
+            return self.fromflat([x * other for x in self.flat], copy=False)
         else:
             other = asvector(other)
             return asvector([u.dot(other) for u in self.colvecs()])
@@ -496,19 +492,19 @@ class AnyMat(BaseAbstractType):
         return zip(self.flat, other.flat)
 
     def __add__(self, other):
-        return self.from_flat(x + y for (x, y) in self._zip_other(other))
+        return self.fromflat(x + y for (x, y) in self._zip_other(other))
 
     def __radd__(self, other):
-        return self.from_flat(y + x for (x, y) in self._zip_other(other))
+        return self.fromflat(y + x for (x, y) in self._zip_other(other))
 
     def __sub__(self, other):
-        return self.from_flat(x - y for (x, y) in self._zip_other(other))
+        return self.fromflat(x - y for (x, y) in self._zip_other(other))
 
     def __rsub__(self, other):
-        return self.from_flat(y - x for (x, y) in self._zip_other(other))
+        return self.fromflat(y - x for (x, y) in self._zip_other(other))
 
     def __neg__(self):
-        return self.from_flat(-x for x in self.flat)
+        return self.fromflat(-x for x in self.flat)
 
     def __nonzero__(self):
         return True
@@ -524,7 +520,7 @@ class AnyMat(BaseAbstractType):
         data = [0] * (N * N)
         for i in range(N):
             data[N * i + i] = diag[i]
-        return cls.__root__[N, N, dtype(data)].from_flat(data, copy=False)
+        return cls.__origin__[N, N, dtype(data)].fromflat(data, copy=False)
 
     def det(self):
         '''Return the determinant of the matrix'''
@@ -559,7 +555,7 @@ class AnyMat(BaseAbstractType):
         return self._from_flat(data)
 
     def nondiag(self):
-        '''Return a matrix stripped from the diagonal'''
+        '''Return a copy of the matrix with diagonal removed'''
 
         N = self.nrows
         data = list(self.flat)
@@ -612,7 +608,7 @@ class AnyMat(BaseAbstractType):
         # Creates extended matrix
         N, M = self.shape
         dtype = promote_type(float, self.dtype)
-        matrix = mMat[N, M, dtype].from_flat(self.flat)
+        matrix = mMat[N, M, dtype].fromflat(self.flat)
         matrix = matrix.append_col(self.identity(N))
 
         # Make left hand side upper triangular
@@ -639,7 +635,7 @@ class AnyMat(BaseAbstractType):
             matrix.irow_mul(i, 1 / matrix[i, i])
 
         out = matrix.select_cols(range(M, 2 * M))
-        return Mat[N, N, dtype].from_flat(out.flat)
+        return Mat[N, N, dtype].fromflat(out.flat)
 
     def solve(self, b, method='gauss', **kwds):
         '''Solve the linear system ``matrix * x  = b`` for x.'''
@@ -688,14 +684,11 @@ class AnyMat(BaseAbstractType):
         return x
 
 
-class Mat(AnyMat, Immutable):
+class Mat(MatAny, Immutable):
     pass
 
 
-class mMat(Mutable, AnyMat):
-    is_mutable = True
-    _immutable_t = Mat
-
+class mMat(MatAny, Mutable):
     __slots__ = ()
 
     def iswap_cols(self, i, j):
@@ -708,7 +701,7 @@ class mMat(Mutable, AnyMat):
 
         if i == j:
             return
-
+        
         matrix = self.ncols
         data = self.flat
         start_i = i * matrix
@@ -716,7 +709,8 @@ class mMat(Mutable, AnyMat):
         for r in range(matrix):
             ki = start_i + r
             kj = start_j + r
-            data[ki], data[kj] = data[kj], data[ki]
+            # FIXME: assert that mMat has a mutable flat
+            self.flat._data[ki], self.flat._data[kj] = data[kj], data[ki]
 
     def irow_add(self, i, j, alpha=1):
         '''Adds alpha times row j to row i *inplace*'''
@@ -728,7 +722,9 @@ class mMat(Mutable, AnyMat):
         for r in range(matrix):
             ki = start_i + r
             kj = start_j + r
-            data[ki] += alpha * data[kj]
+            
+            # FIXME: assert mutable flat
+            self.flat._data[ki] += alpha * data[kj]
 
     def irow_mul(self, i, value):
         '''Multiply row by the given value *inplace*'''
@@ -736,7 +732,8 @@ class mMat(Mutable, AnyMat):
         matrix = self.ncols
         data = self.flat
         for j in range(matrix):
-            data[i * matrix + j] *= value
+            # FIXME: assert mutable data
+            self.flat._data[i * matrix + j] *= value
 
     def icol_add(self, i, j, alpha=1):
         '''Adds alpha times column j to column i *inplace*'''
@@ -753,8 +750,6 @@ class mMat(Mutable, AnyMat):
             for k, x in zip(range(idx, idx + self.ncols), value):
                 data[k] = x
 
-Mat._mutable_t = mMat
-
 
 @overload(mul, (Mat, Vec))
 def mul_matrix_Vec(M, v):
@@ -766,6 +761,19 @@ def mul_Vec_matrix(v, M):
     return NotImplemented
 
 Vec._rotmatrix = Mat
+
+
+#
+# Matrices conversions
+#   
+def asmatrix(m):
+    '''Retorna o objeto como uma instância da classe Vetor'''
+
+    if isinstance(m, Mat2):
+        return m
+    else:
+        return Mat2(m)
+
 
 if __name__ == '__main__':
     u = Vec(1, 2)

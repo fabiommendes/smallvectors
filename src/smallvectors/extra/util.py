@@ -1,14 +1,3 @@
-#-*- coding: utf8 -*-
-
-from smallvectors import Vec1, Vec2, Vec3, Vec4, VecND, Vec
-from smallvectors import Direction2, Direction3, Direction4, DirectionND
-from smallvectors import Point2, Point3, Point4, PointND, Point
-
-###############################################################################
-#                         Propriedades vetoriais
-###############################################################################
-
-
 class VecSlot(object):
 
     '''A slot-like property that holds a vector object'''
