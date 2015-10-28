@@ -1,3 +1,10 @@
+'''
+=======
+Vectors
+=======
+
+
+'''
 import operator
 from generic import promote, set_promotion, set_conversion, get_conversion, convert
 from generic.errors import InexactError
@@ -27,6 +34,13 @@ class VecAny(SmallVectorsBase, Normed, AddElementWise, MulScalar):
         except KeyError:
             bases = (cls,) 
         return bases
+    
+    @classmethod
+    def __preparenamespace__(cls, params):
+        ns = SmallVectorsBase.__preparenamespace__(params)
+        if isinstance(params[0], int) and params[0] > 4:
+            ns.update(__slots__='flat')
+        return ns
     
     @staticmethod
     def __finalizetype__(cls):
@@ -254,12 +268,33 @@ class Vec0D(VecND):
     '''
     0D Vectors (probably even less necessary than Vec1D :P)
     '''
+    
+    __slots__ = ()
+    
+    def __init__(self):
+        pass
+    
+    def __len__(self):
+        return 0
+
+    def __iter__(self):
+        return iter(())
 
 
 class Vec1D(VecND):
     '''
     1D Vectors (is this necessary?)
     '''
+    __slots__ = ('_x')
+    
+    def __init__(self, x):
+        self._x = convert(x, self.dtype)
+        
+    def __len__(self):
+        return 1
+
+    def __iter__(self):
+        yield self._x
     
     @property
     def x(self):
@@ -270,7 +305,7 @@ class Vec1D(VecND):
         _assure_mutable_set_coord(self)
         self._x = convert(value, self.dtype)
         
-    x1 = x
+    x0 = x
 
 
 class Vec2D(VecND):
@@ -343,8 +378,8 @@ class Vec2D(VecND):
         _assure_mutable_set_coord(self)
         self._y = convert(value, self.dtype)
     
-    x2 = y    
-    x = x1 = Vec1D.x
+    x = x0 = Vec1D.x
+    x1 = y
 
     #
     # 2D specific API
@@ -517,9 +552,6 @@ class Vec3D:
         new._z = z
         return new
     
-    x = x1 = Vec2D.x
-    y = x2 = Vec2D.y
-    
     @property
     def z(self):
         return self._z
@@ -528,6 +560,10 @@ class Vec3D:
     def z(self, value):
         _assure_mutable_set_coord(value)
         self._z = value
+
+    x = x0 = Vec2D.x
+    y = x1 = Vec2D.y
+    x3 = z
     
     def cross(self, other):
         '''The cross product between two tridimensional smallvectors'''
@@ -544,10 +580,10 @@ class Vec4D(SmallVectorsBase):
 
     def __init__(self, x, y, z, w):
         dtype = self.dtype
-        self.x = convert(x, dtype)
-        self.y = convert(y, dtype)
-        self.z = convert(z, dtype)
-        self.w = convert(w, dtype)
+        self._x = convert(x, dtype)
+        self._y = convert(y, dtype)
+        self._z = convert(z, dtype)
+        self._w = convert(w, dtype)
 
     def __len__(self):
         return 4
@@ -588,11 +624,7 @@ class Vec4D(SmallVectorsBase):
         new._y = y
         new._z = z
         return new
-    
-    x = x1 = Vec3D.x
-    y = x2 = Vec3D.y
-    z = x3 = Vec3D.z
-    
+
     @property
     def w(self):
         return self._w
@@ -601,8 +633,15 @@ class Vec4D(SmallVectorsBase):
     def w(self, value):
         _assure_mutable_set_coord(value)
         self._w = value
-
     
+    x = x0 = Vec3D.x
+    y = x1 = Vec3D.y
+    z = x2 = Vec3D.z
+    x3 = w
+
+#
+# User-facing types
+#
 class Vec(VecAny, Immutable):
 
     '''Base class for all immutable vector types. Each dimension and type have
@@ -685,9 +724,6 @@ def promote(u, v):
     return u, u.__origin__.from_seq(v)
 
 
-#
-# Method overloads
-#
 def asvector_overload(op, tt):
     real_op = getattr(operator, op.__name__)
 

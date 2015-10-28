@@ -4,12 +4,18 @@ These module implement parametric types for Python.
 
 import abc
 
-
+# Import symbols with default implementations
 try:
     ABC = abc.ABC
 except AttributeError:
     class ABC(metaclass=abc.ABCMeta):
         pass
+
+try:
+    from typing import Any
+except ImportError:
+    class Any(ABC):
+        '''Has basic functionality of typing.Any.'''
 
 
 class ParametricMeta(abc.ABCMeta):
@@ -51,6 +57,7 @@ class ParametricMeta(abc.ABCMeta):
         new.__abstract__ = is_abstract
         new.__subtypes__ = subtypes
         new.__origin__ = origin
+        new.__concrete__ = subtypes is None and not is_abstract
         
         if finalize:        
             try:
@@ -68,7 +75,10 @@ class ParametricMeta(abc.ABCMeta):
         if self.__abstract__:
             raise TypeError('cannot instantiate %s' % self.__name__)
         elif self.__origin__ is None:
-            return self.__abstract_new__(*args, **kwds)
+            new = self.__abstract_new__(*args, **kwds)
+            if new.__class__ is self:
+                raise TypeError('cannot instantiate %s' % self.__name__)
+            return new
         else:
             return super(ParametricMeta, self).__call__(*args, **kwds)
 
@@ -236,7 +246,19 @@ def _subtype_name(origin, params):
 class Parametric(ABC, metaclass=ParametricMeta):
 
     '''
-    All abstract mathematical types such as self.B, Mat, Affine, etc are
-    subclasses of this.
+    Base class for parametric types.
     '''
     __slots__ = ()
+
+
+class Mutable(ABC):
+    '''Base class for all mutable types'''
+
+    __slots__ = ()
+
+
+class Immutable(ABC):
+    '''Base class for all immutable types'''
+
+    __slots__ = ()
+

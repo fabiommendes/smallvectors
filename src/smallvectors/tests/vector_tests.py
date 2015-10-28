@@ -1,150 +1,142 @@
-# -*- coding: utf8 -*-
+from smallvectors.tests import ArithmeticUnittest, unittest
+from smallvectors import Vec, mVec, VecAny
 
-'''
-testing vectors
-'''
+class VecClassTest(unittest.TestCase):
+    
+    def test_class_is_type(self):
+        u = Vec(1, 2)
+        self.assertEqual(u.__class__, type(u))
 
-from math import pi
-from nose.tools import raises, assert_almost_equal, assert_almost_equals
-from unittest import TestCase
-from smallvectors import Vec
+    def test_subclass(self):
+        assert issubclass(Vec, VecAny)
+        assert issubclass(mVec, VecAny)
 
+    def test_unique_subclass(self):
+        assert Vec[2, float] is Vec[2, float]
+        assert Vec[2, int] is Vec[2, int]
 
-class lazy(object):
+    def test_class_parameters(self):
+        vec2 = Vec[2, float]
+        self.assertEqual(vec2.shape, (2,))
+        self.assertEqual(vec2.size, 2)
+        self.assertEqual(vec2.dtype, float)
+        self.assertEqual(vec2.__parameters__, (2, float))
+        self.assertEqual(vec2.__name__, 'Vec[2, float]')
 
-    '''Implementa uma propriedade "preguiçosa": ela é calculada apenas durante o
-    primeiro uso e não durante a inicialização do objeto.'''
+    def test_correct_type_promotion_on_vec_creation(self):
+        assert isinstance(Vec(1, 2), Vec[2, int])
+        assert isinstance(Vec(1.0, 2.0), Vec[2, float])
+        assert isinstance(Vec(1, 2.0), Vec[2, float])
+        assert isinstance(Vec(1.0, 2), Vec[2, float])
 
-    def __init__(self, func):
-        self.func = func
+    def test_vec_equality(self):
+        assert Vec(1, 2) == Vec(1, 2)
+        assert Vec(1, 2) == Vec(1.0, 2.0)
 
-    def __get__(self, obj, cls=None):
-        if obj is None:
-            return self
-        value = self.func(obj)
-        setattr(obj, self.func.__name__, value)
-        return value
+    def test_vec_equality_with_tuples_and_lists(self):
+        self.assertEqual(Vec(1, 2), [1, 2])
+        self.assertEqual(Vec(1, 2), (1, 2))
+        self.assertEqual(Vec(1, 2), [1.0, 2.0])
+        self.assertEqual(Vec(1, 2), (1.0, 2.0))
 
+    def test_reverse_vec_equality_with_tuples_and_lists(self):
+        assert [1, 2] == Vec(1, 2)
+        assert (1, 2) == Vec(1, 2)
+        assert [1.0, 2.0] == Vec(1, 2)
+        assert (1.0, 2.0) == Vec(1, 2)
 
-class Immutable(object):
-    vector = None
-
-    @lazy
-    def u(self):
-        return self.vector(1, 2)
-
-    @lazy
-    def v(self):
-        return self.vector(2, 1)
-
-    # Operações matemáticas inválidas #########################################
-
-    # Propriedades de vetores e operações geométricas #########################
-    def test_vector_norm(self):
-        v = self.vector(3, 4)
-        assert_almost_equal(v.norm(), 5)
-        assert_almost_equal(v.norm_sqr(), 25)
-
-    def test_rotated(self):
-        v = self.vector(1, 2)
-        v_rot = v.rotate(pi / 2)
-        v_res = self.vector(-2, 1)
-        assert_almost_equal((v_rot - v_res).norm(), 0)
-        assert_almost_equal((v_rot.rotate(pi / 2) + v).norm(), 0)
-        assert_almost_equal(v.norm(), v.rotate(pi / 2).norm())
-
-    def test_normalized(self):
-        v = self.vector(1, 2)
-        n = v.normalized()
-
-        assert_almost_equal(v.normalized().norm(), 1)
-        assert_almost_equals(n.x * v.x + n.y * v.y, v.norm())
-
-    # Interface Python ########################################################
-    def test_as_tuple(self):
-        v = self.vector(1, 2)
-        t = v.as_tuple()
-        assert isinstance(t, tuple)
-        assert t == (1, 2)
-
-    def test_getitem(self):
-        v = self.vector(1, 2)
-        assert v[0] == 1, v[1] == 2
-
-    @raises(IndexError)
-    def test_overflow(self):
-        v = self.vector(1, 2)
-        v[2]
-
-    def test_iter(self):
-        v = self.vector(1, 2)
-        assert list(v) == [1, 2]
-
-    def test_len(self):
-        v = self.vector(1, 2)
-        assert len(v) == 2
+    def test_vec_promotion_on_arithmetic_operations(self):
+        u = Vec(1, 2)
+        v = Vec(0.0, 0.0)
+        assert isinstance(u + v, Vec[2, float])
+        assert isinstance(u - v, Vec[2, float])
+        assert isinstance(u * 1.0, Vec[2, float])
+        assert isinstance(u / 1.0, Vec[2, float])
 
 
-class Mutable(Immutable):
-    # Modificação de coordenadas ##############################################
+class Vec2IntTest(ArithmeticUnittest):
+    obj_type = Vec[2, int]
 
-    def test_set_coords(self):
-        v = self.vector(1, 2)
-        v.x = 2
-        assert v == (2, 2)
+    def names(self):
+        Vec = self.obj_type
+        u = Vec(1, 2)
+        v = Vec(3, 4)
+        a_tuple = (1, 2)
+        a_list = [1, 2]
+        m = 2
+        k = 0.5
 
-    def test_setitem(self):
-        v = self.vector(1, 2)
-        v[0] = 2
-        assert v == (2, 2)
+        add_uv = (4, 6)
+        sub_uv = (-2, -2)
+        sub_vu = (2, 2)
 
-    def test_update(self):
-        v = self.vector(1, 2)
-        v.update(2, 1)
-        assert v == (2, 1)
-        v.update((1, 2))
-        assert v == (1, 2)
+        mul_mu = (2, 4)
+        mul_ku = (0.5, 1.0)
+        div_um = (0.5, 1)
+        div_ku = (2, 4)
 
-    # Operações matemáticas inplace ###########################################
-    def test_iadd(self):
-        v = self.vector(1, 2)
-        v += (1, 2)
-        assert v == (2, 4)
+        del Vec
+        return locals()
 
-    def test_imul(self):
-        v = self.vector(1, 2)
-        v *= 2
-        assert v == (2, 4)
+    def test_invalid_add_scalar(self):
+        with self.assertRaises(TypeError):
+            self.u + 1
 
-    def test_idiv(self):
-        v = self.vector(1, 2)
-        v /= 0.5
-        assert v == (2, 4)
+    def test_invalid_sub_scalar(self):
+        with self.assertRaises(TypeError):
+            self.u - 1
 
-###############################################################################
-#                                TestCases
-###############################################################################
+    def test_invalid_mul_tuple(self):
+        with self.assertRaises(TypeError):
+            self.u * (1, 2)
+
+    def test_invalid_mul_vec(self):
+        with self.assertRaises(TypeError):
+            self.u * self.u
+
+    def test_invalid_div_tuple(self):
+        with self.assertRaises(TypeError):
+            self.u / (1, 2)
+        with self.assertRaises(TypeError):
+            (1, 2) / self.u
+
+    def test_invalid_div_vec(self):
+        with self.assertRaises(TypeError):
+            self.u / self.u
+
+    def test_invalid_div_scalar(self):
+        with self.assertRaises(TypeError):
+            1 / self.u
+
+    def test_rotated_is_new(self):
+        assert self.u.rotated(1.0) is not self.u
+        
+    def test_rotated_keeps_norm(self):
+        for t in range(20):
+            Z1 = self.u.norm()
+            Z2 = self.u.rotated(6.28 * t / 20).norm()
+            assert abs(Z1 - Z2) < 1e-6, (Z1, Z2)
+            
+
+class Vec2FloatTest(Vec2IntTest):
+    obj_type = Vec[2, float]
+    
+
+class Vec2Test(unittest.TestCase):
+    dtype = float
+    
+    def setUp(self):
+        self.cls = Vec[2, self.dtype]
+
+    def test_has_2d_methods(self):
+        for attr in ['perp', 'frompolar']:
+            assert hasattr(self.cls, attr), attr
 
 
-class FloatVecTest(Immutable, TestCase):
-    vector = Vec[2, float]
-
-
-# class CVectorMTest(Mutable, TestCase):
-#    from FGAme.mathutils.cvector import mVec2 as vector
-
-
-# class PyVectorTest(Immutable, TestCase):
-#    from FGAme.mathutils.vector import Vec2 as vector
-
-
-# class PyVectorMTest(Mutable, TestCase):
-#    from FGAme.mathutils.vector import mVec2 as vector
-
-
-u = Vec(1, 2)
-print(u * u)
+# class Vec2DecimalTest(Vec2IntTest):
+#    test_type = Vec[2, Decimal]
 
 if __name__ == '__main__':
-    import nose
-    nose.runmodule('__main__')
+    unittest.main()
+
+

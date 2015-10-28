@@ -1,72 +1,110 @@
-# -*- coding: utf8 -*-
-from generic import overload, promote_type
-from generic.operator import mul
-from smallvectors.core import SmallVectorsBase, shape, dtype, get_common_base, Immutable, Mutable
-from smallvectors import Vec
+'''
+========
+Matrices
+========
 
-__all__ = ['Mat']
-number = (float, int)
-dtype_ = dtype
+Generic matrix interface
 
+Example
+-------
 
-class MatAny(SmallVectorsBase):
+Criamos uma matriz a partir de uma lista de listas
 
-    '''Generic matrix interface
+>>> matrix = Mat([1, 2],
+...              [3, 4])
 
-    Example
-    -------
+Podemos também utilizar classes especializadas, como por exemplo
+a `RotMat`, que cria uma matriz de rotação
 
-    Criamos uma matriz a partir de uma lista de listas
+>>> R = Mat([-1, 0],
+...         [0, -1])
+>>> print(R)
+|-1   0|
+| 0  -1|
 
-    >>> matrix = Mat([1, 2],
-    ...              [3, 4])
+Os objetos da classe Mat implementam as operações algébricas básicas
 
-    Podemos também utilizar classes especializadas, como por exemplo
-    a `RotMat`, que cria uma matriz de rotação
+>>> print(matrix + 2 * R)
+|-1  2|
+| 3  2|
 
-    >>> R = Mat([-1, 0],
-    ...         [0, -1]); R
-    |-1   0|
-    | 0  -1|
+As multiplicações são como definidas em ágebra linear
 
-    Os objetos da classe Mat implementam as operações algébricas básicas
+>>> print(matrix * matrix)
+| 7  10|
+|15  22|
 
-    >>> matrix + 2 * R
-    |-1  2|
-    | 3  2|
+Onde multiplicação por vetores também é aceita
 
-    As multiplicações são como definidas em ágebra linear
+>>> v = Vec(2, 3)
+>>> matrix * v
+Vec(8, 18)
 
-    >>> matrix * matrix
-    | 7  10|
-    |15  22|
+Note que não existem classes especializadas para vetores linha ou coluna.
+Deste modo, sempre assumimos o formato que permite realizar a
+multiplicação.
 
-    Onde multiplicação por vetores também é aceita
+>>> v * matrix   # agora v é tratado como um vetor linha
+Vec(11, 16)
 
-    >>> v = Vec(2, 3)
-    >>> matrix * v
-    Vec[2, int](8, 18)
+Além disto, temos operações como cálculo da inversa, autovalores,
+determinante, etc
 
-    Note que não existem classes especializadas para vetores linha ou coluna.
-    Deste modo, sempre assumimos o formato que permite realizar a
-    multiplicação.
+>>> print(matrix.inv() * matrix)
+|1  0|
+|0  1|
 
-    >>> v * matrix   # agora v é tratado como um vetor linha
-    Vec[2, int](11, 16)
-
-    Além disto, temos operações como cálculo da inversa, autovalores,
-    determinante, etc
-
-    >>> matrix.inv() * matrix
-    |1  0|
-    |0  1|
-
-    #>>> (matrix * matrix.inv()).eigval()
-    #(1.0, 1.0)
+>>> (matrix * matrix.inv()).eigenvalues()
+[1.0, 1.0]
     '''
+
+
+from generic import overload, promote_type, convert
+from generic.operator import mul
+from smallvectors.core import SmallVectorsBase, Immutable, Mutable, AddElementWise
+from smallvectors.core import shape, dtype as _dtype, get_common_base, FlatView, Any
+from smallvectors import Vec, asvector
+
+__all__ = ['Mat', 'mMat', 'MatAny']
+number = (float, int)
+
+
+class MatAny(SmallVectorsBase, AddElementWise):
+    '''
+    Base class for mutable and immutable matrix types
+    '''
+    
     __slots__ = ()
     __parameters__ = (int, int, type)
 
+    @classmethod
+    def __preparenamespace__(cls, params):
+        ns = SmallVectorsBase.__preparenamespace__(params)
+        return ns
+
+    @classmethod
+    def __preparebases__(cls, params):
+        N, M, dtype = params
+        if (isinstance(N, int) and isinstance(M, int)):
+            if N == M == 2:
+                return (Mat2x2, cls)
+            elif N == M == 3:
+                return (Mat3x3, cls)
+            elif M == N:
+                return (Square, cls)
+        return (cls,)
+    
+    @staticmethod
+    def __finalizetype__(cls):
+        SmallVectorsBase.__finalizetype__(cls)
+        if cls.shape:
+            cls.nrows, cls.ncols = cls.shape
+        else:
+            cls.nrows = cls.ncols = None
+
+    #
+    # Constructors
+    #
     @classmethod
     def __abstract_new__(cls, *args, dtype=None):
         shape_ = shape(args)
@@ -75,53 +113,53 @@ class MatAny(SmallVectorsBase):
         except ValueError:
             raise ValueError('invalid input shape: %s' % repr(shape_))
         if dtype is None:
-            dtype = get_common_base(*[dtype_(x) for x in args])
+            dtype = get_common_base(*[_dtype(x) for x in args])
         return cls[nrows, ncols, dtype](*args)
 
     def __init__(self, *args):
         self.flat = self._flat(sum(map(list, args), []), copy=False)
 
-    ndims = 2
-
-    @property
-    def nrows(self):
-        return self.shape[0]
-
-    @property
-    def ncols(self):
-        return self.shape[1]
-
-    @classmethod
-    def identity(cls, N):
-        '''Return an identity matrix of size N by N'''
-
-        return cls.from_diag([1] * N)
-
     @classmethod
     def fromdict(cls, D):
         '''Build a matrix from a dictionary from indexes to values'''
 
-        N = max(i for (i, _j) in D)
-        matrix = max(j for (_i, j) in D)
-        data = [0.0] * (N * matrix)
+        N, M = cls.shape
+        data = [0] * (N * M)
         for (i, j), value in D.items():
+            if i >= cls.nrows or j >= cls.nrows:
+                fmt = (N, M, (i, j)) 
+                raise IndexError('invalid index for %sx%s matrix: %r' % fmt)
             k = i * N + j
             data[k] = value
 
-        return cls.fromflat(data, N, matrix)
+        return cls.fromflat(data)
 
     @classmethod
-    def fromrows(cls, rows):
-        '''Build matrix from a sequence of row Vecs'''
+    def fromrows(cls, rows, dtype=None):
+        '''Build matrix from a sequence of row vectors'''
 
-        N = len(rows)
-        M = len(rows[0])
+        # Obtain shape
+        if cls.size is None:
+            N = len(rows)
+            M = len(rows[0])
+        else:
+            M, N = cls.shape
+            
+        # Collect data
         data = []
         for row in rows:
             if len(row) != M:
-                raise ValueError('Vecs must be of same length')
+                raise ValueError('rows must be of same length')
             data.extend(row)
-        return cls.__origin__[N, M, dtype(data)].fromflat(data)
+
+        # Choose the correct dtype
+        if (dtype is None or dtype is cls.dtype) and cls.size is not None:
+            return cls.fromflat(data)
+        elif dtype is Any:
+            return cls.fromflat(data, dtype=_dtype(data))
+        else:
+            T = (cls.__origin__ or cls)[N, M, dtype]
+            return T.fromflat(data)
 
     @classmethod
     def fromcols(cls, cols):
@@ -136,16 +174,9 @@ class MatAny(SmallVectorsBase):
     def T(self):
         return self.transpose()
 
-    is_mutable = False
-
     #
     # Return row Vecs or column Vecs
     #
-    def aslists(self):
-        '''Return matrix data as a list of lists'''
-
-        return [list(row) for row in self]
-
     def asdict(self):
         '''Return matrix data as a map from indexes to (non-null)
         values.'''
@@ -159,6 +190,9 @@ class MatAny(SmallVectorsBase):
                     D[i, j] = value
         return D  
 
+    #
+    # Iterators
+    #
     def items(self):
         '''Iterator over ((i, j), value) pairs.
 
@@ -180,6 +214,38 @@ class MatAny(SmallVectorsBase):
             j = k % N
             yield (i, j), value
 
+    def cols(self):
+        '''Iterator over columns of matrix
+
+        See also
+        --------
+
+        :meth:`rows`: iterate over the rows of a matrix.
+
+        Example
+        -------
+
+        >>> M = Mat([1, 2], 
+        ...         [3, 4])
+
+        >>> list(M.cols())
+        [Vec(1, 3), Vec(2, 4)]
+
+        >>> list(M.rows())
+        [Vec(1, 2), Vec(3, 4)]
+
+        '''
+
+        M = self.ncols
+        data = self.flat
+        for i in range(M):
+            yield asvector(data[i::M])
+
+    def rows(self):
+        '''Iterator over row vectors'''
+
+        return iter(self)
+
     def col(self, i):
         '''Return the i-th column Vec'''
 
@@ -195,36 +261,6 @@ class MatAny(SmallVectorsBase):
         matrix = self.ncols
         start = i * matrix
         return asvector(self.flat[start:start + matrix])
-
-    def colvecs(self):
-        '''Return list of all column vectors
-
-        See also
-        --------
-
-        :meth:`rowvecs`: return the row vectors of a matrix.
-
-        Example
-        -------
-
-        >>> M = Mat([1, 2], [3, 4])
-
-        >>> M.colvecs()
-        [Vec[2, int](1, 3), Vec[2, int](2, 4)]
-
-        >>> M.rowvecs()
-        [Vec[2, int](1, 2), Vec[2, int](3, 4)]
-
-        '''
-
-        matrix = self.ncols
-        data = self.flat
-        return [asvector(data[i::matrix]) for i in range(matrix)]
-
-    def rowvecs(self):
-        '''Return list of all row Vecs. Same as list(matrix)'''
-
-        return list(self)
 
     def copy(self, D=None, **kwds):
         '''Return a copy of matrix possibly changing some terms.
@@ -243,17 +279,14 @@ class MatAny(SmallVectorsBase):
 
         Let us override using a dict
 
-        >>> matrix.copy({(0, 0): 42})
-        |42  2|
-        | 3  4|
+        >>> matrix.copy({(0, 0): 42, (0, 1): 3})
+        Mat([42, 3], [3, 4])
 
         A similar operation can also be done by setting the corresponding
         keyword arguments. Remember that indexes start at zero as usual.
 
         >>> matrix.copy(A00=42, A01=3)
-        |42  3|
-        | 3  4|
-
+        Mat([42, 3], [3, 4])
         '''
 
         N, matrix = self.shape
@@ -289,25 +322,6 @@ class MatAny(SmallVectorsBase):
 
         return self.fromflat(data)
 
-    def mutable(self, D=None, **kwds):
-        '''Like copy(), but always return a mutable object'''
-
-        cp = self.copy(D, **kwds)
-        if self.is_mutable:
-            return cp
-        else:
-            cls = mMat[self.nrows, self.ncols, self.dtype]
-            return cls.fromflat(list(cp.flat))
-
-    def immutable(self, D=None, **kwds):
-        '''Like copy(), but always return an immutable object'''
-
-        cp = self.copy(D, **kwds)
-        if not self.is_mutable:
-            return cp
-        else:
-            return cp._immutable_t.fromflat(cp.flat, *cp.shape)
-
     def transpose(self):
         '''Return the transposed matrix
 
@@ -316,11 +330,12 @@ class MatAny(SmallVectorsBase):
 
         Transpose just mirrors items around the diagonal.
 
-        >>> matrix = Mat([1, 2], [3, 4]); matrix
+        >>> matrix = Mat([1, 2], [3, 4])
+        >>> print(matrix)
         |1  2|
         |3  4|
 
-        >>> matrix.transpose()
+        >>> print(matrix.transpose())
         |1  3|
         |2  4|
 
@@ -330,43 +345,75 @@ class MatAny(SmallVectorsBase):
         True
         '''
 
-        return self.fromrows(self.colvecs())
+        return self.fromrows(self.cols())
 
-    def append_row(self, row):
-        '''Return a new matrix with and extra row appended to the end.
 
-        If the argument ``row`` is a matrix, multiple rows are inserted.'''
+    #
+    # Shape transformations
+    #
+    def __raise_badshape(self, data, s1):
+        fmt = data, s1, self.nrows, self.nrows
+        raise ValueError('incompatible %s size: %s in (%sx%s) matrix' % fmt)
+    
+    def withrow(self, data, index=None):
+        '''Return a new matrix with and extra data inserted in the given index.
+        If not index is given, insert data at the end.
 
-        N, matrix = self.shape
+        If the argument ``data`` is a matrix, multiple rows are inserted.'''
+
+        N, M = self.shape
         data = list(self.flat)
-        data.extend(row)
-        return self.fromflat(data, N + 1, matrix)
-
-    def append_col(self, col, idx=-1):
-        '''Return a new matrix with and extra column appended to the end.
-
-        If the argument ``col`` is a matrix, multiple columns are inserted.'''
-
-        if isinstance(col, Mat):
-            matrix = col
-            out = self.aslists()
-            for row, L in zip(matrix, out):
-                L.extend(row)
-            return self.fromrows(out)
+        
+        if isinstance(data, Mat):
+            if data.ncols != N:
+                self.__raise_badshape('row', data.ncols)
+            newdata = data.flat
+            M += data.nrows
         else:
-            out = self.aslists()
-            for x, L in zip(col, out):
-                L.append(x)
-            return self.fromrows(out)
+            newdata = list(data)
+            if len(newdata) != N:
+                self.__raise_badshape('row', data.ncols)
+            M += 1
+            
+        if index is None:
+            data.extend(newdata)
+        else:
+            index = N * index
+            data = data[:index] + newdata + data[index:]
+            
+        #FIXME: infer correct dtype
+        return Mat[N, M, self.dtype].fromflat(data, copy=False)
 
-    def drop_col(self, idx=None):
+    def withcol(self, data, index=None):
+        '''Similar to M.withrow(), but works with columns'''
+
+        N, M = self.shape
+        cols = list(self.cols)
+        if isinstance(data, Mat):
+            if data.nrows != M:
+                self.__raise_badshape('column', data.ncols)
+            if index is None:
+                cols.extend(data.cols)
+            else:
+                cols = cols[:index] + list(data.cols) + cols[index:]
+        
+        else:
+            if index is None:
+                cols.append(list(data))
+            else:
+                cols.insert(index, list(data))
+
+        #FIXME: infer correct dtype
+        return Mat[N, M, self.dtype].fromcols(data)
+
+    def droppingcol(self, idx=None):
         '''Return a pair (matrix, col) with the new matrix with the extra column
         removed'''
 
         transpose, col = self.T.drop_row(idx)
         return transpose.T, col
 
-    def drop_row(self, idx=None):
+    def droppingrow(self, idx=None):
         '''Return a pair (matrix, row) with the new matrix with the extra row
         removed'''
 
@@ -374,15 +421,18 @@ class MatAny(SmallVectorsBase):
             idx = -1
         data = self.aslists()
         row = data.pop(idx)
-        return self.fromlists(data), asvector(row)
+        return self.fromrows(data), asvector(row)
 
-    def select_cols(self, cols):
+    def selectcols(self, cols):
         '''Return a new matrix with the columns corresponding to the given
         sequence of indexes'''
 
         cols = tuple(cols)
         data = [[L[i] for i in cols] for L in self.aslists()]
         return self.fromrows(data)
+    
+    def selectrows(self, rows):
+        pass
 
     #
     # Magic methods
@@ -392,18 +442,19 @@ class MatAny(SmallVectorsBase):
         return ('%.3f' % x).rstrip('0').rstrip('.')
 
     def __repr__(self):
+        data = ', '.join([repr(list(x)) for x in self])
+        return '%s(%s)' % (self.__origin__.__name__, data)
+        
+    def __str__(self):
         N, matrix = self.shape
         fmt = self._fmt_number
-        rows = [[fmt(x) for x in row] for row in self.rowvecs()]
+        rows = [[fmt(x) for x in row] for row in self.rows()]
         sizes = sum([[len(x) for x in row] for row in rows], [])
         sizes_T = [sizes[i::N] for i in range(matrix)]
         sizes_max = [max(col) for col in sizes_T]
         rows = [[x.rjust(n) for n, x in zip(sizes_max, row)] for row in rows]
         rows = ['|%s|' % ('  '.join(row)) for row in rows]
         return '\n'.join(rows)
-
-    def __str__(self):
-        return repr(self)
 
     def __len__(self):
         return self.nrows
@@ -424,28 +475,22 @@ class MatAny(SmallVectorsBase):
         elif isinstance(idx, int):
             return self.row(idx)
 
-    def __eq__(self, other):
-        if self.ncols != other.ncols or self.nrows != other.nrows:
-            return False
-        else:
-            return all(x == y for (x, y) in zip(self.flat, other.flat))
-
     #
     # Arithmetic operations
     #
     def __mul__(self, other):
         if isinstance(other, (Vec, tuple, list)):
             other = asvector(other)
-            return asvector([u.dot(other) for u in self.rowvecs()])
+            return asvector([u.dot(other) for u in self.rows()])
 
         elif isinstance(other, number):
             return self.fromflat([x * other for x in self.flat], copy=False)
 
         elif isinstance(other, Mat):
-            cols = other.colvecs()
-            rows = self.rowvecs()
+            cols = list(other.cols())
+            rows = list(self.rows())
             data = sum([[u.dot(v) for u in cols] for v in rows], [])
-            cls = self.__origin__[len(rows), len(cols), dtype(data)]
+            cls = self.__origin__[len(rows), len(cols), _dtype(data)]
             return cls.fromflat(data, copy=False)
 
         else:
@@ -456,7 +501,7 @@ class MatAny(SmallVectorsBase):
             return self.fromflat([x * other for x in self.flat], copy=False)
         else:
             other = asvector(other)
-            return asvector([u.dot(other) for u in self.colvecs()])
+            return asvector([u.dot(other) for u in self.cols()])
 
     def __div__(self, other):
         if isinstance(other, number):
@@ -509,18 +554,23 @@ class MatAny(SmallVectorsBase):
     def __nonzero__(self):
         return True
 
-    #
-    # Specialized methods for square matrices
-    #
+#
+# Matrix bases for specific shapes
+#
+class Square:
+    '''
+    Methods specific to square matrices
+    '''
+    
     @classmethod
-    def from_diag(cls, diag):
+    def fromdiag(cls, diag):
         '''Create diagonal matrix from diagonal terms'''
 
         N = len(diag)
         data = [0] * (N * N)
         for i in range(N):
             data[N * i + i] = diag[i]
-        return cls.__origin__[N, N, dtype(data)].fromflat(data, copy=False)
+        return cls.__origin__[N, N, _dtype(data)].fromflat(data, copy=False)
 
     def det(self):
         '''Return the determinant of the matrix'''
@@ -534,7 +584,7 @@ class MatAny(SmallVectorsBase):
         return sum(i * N + i for i in range(N))
 
     def diag(self):
-        '''Return a Vec with the diagonal elements of the matrix'''
+        '''Return a vector with the diagonal elements of the matrix'''
 
         N = self.nrows
         data = self.flat
@@ -564,42 +614,24 @@ class MatAny(SmallVectorsBase):
         return self._from_flat(data)
 
     def eig(self):
-        '''Retorna uma tupla com a lista de autovalores e a matriz dos
-        autovetores
+        '''Return a tuple of (eigenvalues, eigenvectors).'''
 
-        Example
-        -------
+        return (self.eigval(), self.eigvec())
 
-        Criamos uma matriz e aplicamos eig()
+    def eigenvalues(self):
+        '''Return a list of eigenvalues'''
 
-        #>>> matrix = Mat([[1,2], [3,4]])
-        #>>> vals, vecs = matrix.eig()
+        return [val for (val, _) in self.eigenpairs()]
 
-        Agora extraimos os auto-vetores coluna
+    def eigenvectors(self):
+        '''Return the matrix of normalized column eigenvectors.'''
 
-        #>>> v1, v2 = vecs.colvecs()
-
-        Finalmente, multiplicamos matrix por v1: o resultado deve ser igual que
-        multiplicar o autovetor pelo autovalor correspondente
-
-        #>>> matrix * v1, vals[0] * v1
-        #(Vec2(2.2, 4.9), Vec2(2.2, 4.9))
-        '''
-
-        raise NotImplementedError
-
-    def eigval(self):
-        '''Retorna uma tupla com os autovalores da matriz'''
-
-        raise NotImplementedError
-
-    def eigasvector(self, transpose=False):
-        '''Retorna uma lista com os autovetores normalizados da matriz.
-
-        A ordem dos autovetores corresponde àquela retornada pelo método
-        `matrix.eigval()`'''
-
-        raise NotImplementedError
+        return self.fromcols([vec for (_, vec) in self.eigenpairs()])
+    
+    def eigenpairs(self):
+        '''Return a list of (eigenvalue, eigenvector) pairs.'''
+        
+        return list(zip(self.eigval(), self.eigvec().cols()))
 
     def inv(self):
         '''Returns the inverse matrix'''
@@ -609,7 +641,7 @@ class MatAny(SmallVectorsBase):
         N, M = self.shape
         dtype = promote_type(float, self.dtype)
         matrix = mMat[N, M, dtype].fromflat(self.flat)
-        matrix = matrix.append_col(self.identity(N))
+        matrix = matrix.append_col(identity(N))
 
         # Make left hand side upper triangular
         for i in range(0, N):
@@ -684,11 +716,199 @@ class MatAny(SmallVectorsBase):
         return x
 
 
+class Mat2x2(Square):
+
+    '''A 2 x 2 matrix'''
+
+
+    __slots__ = ('_a', '_b', '_c', '_d')
+
+    def __init__(self, row1, row2):
+        dtype = self.dtype
+        a, b = row1
+        c, d = row2
+        self._a = convert(a, dtype)
+        self._b = convert(b, dtype)
+        self._c = convert(c, dtype)
+        self._d = convert(d, dtype)
+
+    # Flat attribute handling
+    @classmethod
+    def fromflat(cls, data, copy=True, dtype=None):
+        if cls.__concrete__ and dtype is None:
+            a, b, c, d = data
+            dtype = cls.dtype
+            new = object.__new__(cls)
+            new._a = convert(a, dtype)
+            new._b = convert(b, dtype)
+            new._c = convert(c, dtype)
+            new._d = convert(d, dtype)
+            return new
+        return super().fromflat(data, copy=copy, dtype=dtype)
+    
+    @property
+    def flat(self):
+        return FlatView(self)
+    
+    def __flatiter__(self):
+        yield self._a
+        yield self._b
+        yield self._c
+        yield self._d
+        
+    def __flatgetitem__(self, i):
+        if i == 0:
+            return self._a
+        elif i == 1:
+            return self._b
+        elif i == 2:
+            return self._c
+        elif i == 3:
+            return self._d
+        else:
+            raise IndexError(i)
+
+    def __flatsetitem__(self, i, value):
+        if i == 0:
+            self._a = convert(value, self.dtype)
+        elif i == 1:
+            self._b = convert(value, self.dtype) 
+        elif i == 2:
+            self._c = convert(value, self.dtype)
+        elif i == 3:
+            self._d = convert(value, self.dtype)
+        else:
+            raise IndexError(i)
+    
+    # Iterators
+    def __iter__(self):
+        vec = Vec[2, self.dtype]
+        yield vec(self._a, self._b)
+        yield vec(self._c, self._d)
+    
+    def cols(self):
+        vec = Vec[2, self.dtype]
+        yield vec(self._a, self._c)
+        yield vec(self._b, self._d)
+
+    def items(self):
+        yield (0, 0), self._a
+        yield (0, 1), self._b
+        yield (1, 0), self._c
+        yield (1, 1), self._d
+
+    # Linear algebra operations
+    def det(self):
+        return self._a * self._d - self._b * self._c
+
+    def trace(self):
+        return self._a + self._d
+
+    def diag(self):
+        return Vec[2, self.dtype](self._a, self._d)
+
+    def inv(self):
+        det = self.det()
+        return Mat([self._d / det, -self._b / det], 
+                   [-self._c / det, self._a / det])
+    
+    def transpose(self):
+        return type(self)([self._a, self._c],
+                          [self._b, self._d])
+    
+    def eigenpairs(self):
+        a, b, c, d = self.flat
+        l1 = (d + a + self._sqrt(d * d - 2 * a * d + a * a + 4 * c * b)) / 2
+        l2 = (d + a - self._sqrt(d * d - 2 * a * d + a * a + 4 * c * b)) / 2
+        
+        try:
+            v1 = Vec(b / (l1 - a), 1)
+        except ZeroDivisionError:
+            v1 = Vec(1, 0)
+        try:
+            v2 = Vec(b / (l2 - a), 1)
+        except ZeroDivisionError:
+            v2 = Vec(1, 0)
+
+        return [(l1, v1.normalized()), (l2, v2.normalized())]
+
+
+class Mat3x3(object):
+
+    def det(self):
+        a, b, c, d, e, f, g, h, i = self.flat
+        d1 = + (a * e * i)
+        d2 = + (b * f * g)
+        d3 = + (c * d * h)
+        d4 = - (c * e * g)
+        d5 = - (a * f * h)
+        d6 = - (b * d * i)
+        return d1 + d2 + d3 + d4 + d5 + d6
+
+    def trace(self):
+        return self.flat[0] + self.flat[4] + self.flat[8]
+
+    def diag(self):
+        return Vec[3, self.dtype](self.flat[0], self.flat[4], self.flat[8])
+    
+    def transpose(self):
+        a, b, c, d, e, f, g, h, i = self.flat
+        return self.fromflat([a, d, g,
+                              b, e, h,
+                              c, f, i], copy=False)
+
+    def inv(self):
+        Z = 1 / self.det() 
+        a, b, c, d, e, f, g, h, i = self.flat
+        data = [
+            (e * i - f * h) * Z, (c * h - b * i) * Z, (b * f - c * e) * Z,
+            (f * g - d * i) * Z, (a * i - c * g) * Z, (c * d - a * f) * Z,
+            (d * h - e * g) * Z, (b * g - a * h) * Z, (a * e - b * d) * Z,
+        ]
+        return self.fromflat(data, copy=False)
+    
+    # TODO: use these faster versions
+    def __mul_matrix(self, other):
+        outtype = promote_type(type(self), type(other))
+        a, b, c, d, e, f, g, h, i = self.flat
+        j, k, l, m, n, o, p, q, r = other.flat
+        data = [
+            a * j + b * m + c * p, a * k + b * n + c * q, a * l + b * o + c * r,
+            d * j + e * m + f * p, d * k + e * n + f * q, d * l + e * o + f * r,
+            g * j + h * m + i * p, g * k + h * n + i * q, g * l + h * o + i * r,
+        ]
+        return outtype.fromflat(data, copy=False)
+
+    def __mul_vector(self, other):
+        a, b, c, d, e, f, g, h, i = self.flat
+        x, y, z = other
+
+        return Vec(a * x + d * y + g * z, 
+                   b * x + e * y + h * z, 
+                   c * x + f * y + i * z)
+
+class mMat3x3:
+    def itranspose(self):
+        '''Transpose matrix *INPLACE*'''
+        
+        data = self.flat
+        a, b, c = data[1], data[2], data[5]
+        data[1], data[2] = data[3], data[6]
+        data[3], data[5] = a, data[7]
+        data[6], data[7] = b, c
+
+#
+# User-facing types
+#
 class Mat(MatAny, Immutable):
-    pass
+
+    '''A immutable matrix type'''
 
 
 class mMat(MatAny, Mutable):
+    
+    '''A mutable version of Mat'''
+    
     __slots__ = ()
 
     def iswap_cols(self, i, j):
@@ -751,6 +971,9 @@ class mMat(MatAny, Mutable):
                 data[k] = x
 
 
+#
+# Overloads and promotions
+#
 @overload(mul, (Mat, Vec))
 def mul_matrix_Vec(M, v):
     return NotImplemented
@@ -759,7 +982,6 @@ def mul_matrix_Vec(M, v):
 @overload(mul, (Vec, Mat))
 def mul_Vec_matrix(v, M):
     return NotImplemented
-
 Vec._rotmatrix = Mat
 
 
@@ -767,17 +989,49 @@ Vec._rotmatrix = Mat
 # Matrices conversions
 #   
 def asmatrix(m):
-    '''Retorna o objeto como uma instância da classe Vetor'''
+    '''Return object as an immutable matrix'''
 
-    if isinstance(m, Mat2):
+    if isinstance(m, Mat):
         return m
     else:
-        return Mat2(m)
+        return Mat(*m)
+    
+def asmmatrix(m):
+    '''Return object as a mutable matrix'''
+
+    if isinstance(m, mMat):
+        return m
+    else:
+        return mMat(*m)
+
+
+def asamatrix(m):
+    '''Return object as an immutable matrix'''
+
+    if isinstance(m, MatAny):
+        return m
+    else:
+        return Mat(*m)
+    
+
+def identity(N, dtype=float):
+    '''Return an identity matrix of size N by N'''
+
+    return Mat[N, N, dtype].fromdiag([1] * N)
+
+
+def midentity(N, dtype=float):
+    '''Return a mutable identity matrix of size N by N'''
+
+    return mMat[N, N, dtype].fromdiag([1] * N)
 
 
 if __name__ == '__main__':
     u = Vec(1, 2)
     matrix = Mat([1, 2], [3, 4])
+    
+    
+    
     print(matrix)
     print(matrix * matrix)
     print(matrix.inv())
@@ -787,13 +1041,16 @@ if __name__ == '__main__':
     print(M, '\n')
     print(M.T, '\n')
     M = Mat([0], [1])
-    print(M)
+    print(repr(M))
 
     # print(matrix)
-    v = matrix.solve(u)
-    print(u)
-    print(matrix * v)
-    print(u)
+    #v = matrix.solve(u)
+    #print(u)
+    #print(matrix * v)
+    #print(u)
 
     import doctest
     doctest.testmod()
+
+    M2 = Mat.fromrows([[1, 2], [3, 4]])
+    print(type(M2))

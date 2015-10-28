@@ -26,7 +26,7 @@ class VecArray(MutableSequence):
         Sob muitos aspectos, um VecArray funciona como uma lista de vetores
 
         >>> a[0], a[1]
-        (Vec[2, int](0, 0), Vec[2, int](1, 0))
+        (Vec(0, 0), Vec(1, 0))
 
         As operações matemáticas ocorrem termo a termo
 

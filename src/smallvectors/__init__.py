@@ -14,7 +14,7 @@ Examples
 >>> u = Vec(1, 2)
 >>> v = Vec(3.0, 4)
 >>> u + v
-Vec[2, float](4.0, 6.0)
+Vec(4.0, 6.0)
 
 '''
 

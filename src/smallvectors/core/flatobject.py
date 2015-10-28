@@ -1,56 +1,14 @@
-'''
-Some implementations to the .flat attribute of ``smallvectors`` objects. It
-can be either a list-like object that prevents some forbiden operations such
-as item insertions and deletions or a view to someone that actually owns data.
-
-=====
-Usage
-=====
-
-A Flat object is very similar to a list
-
->>> L = Flat([1, 2, 3]); L
-flat([1, 2, 3])
-
-A flat view simply exposes data from some other list-like object
-
->>> view = FlatView(L); view
-flat([1, 2, 3])
-
-If we change the data owner, the view updates
-
->>> flat_setitem(L, 0, 42); L; view
-flat([42, 2, 3])
-flat([42, 2, 3])
-
-We can even change the view and it is forwarded to the original data owner.
-Of course it only works in mutable owners.
-
->>> L = [1, 2, 3]
->>> view = FlatView(L)
->>> L[0] = 42
->>> print(view)
-flat([42, 2, 3])
-'''
-__author__ = 'Fábio Macêdo Mendes'
-
 import collections
-
-__all__ = ['Flat', 'mFlat', 'FlatView', 'mFlatView', 
-           'SimpleFlatView', 'mSimpleFlatView']
-
-def flat_setitem(flat_obj, idx, value):
-    '''Used privately to set some item into a Flat object'''
-
-    flat_obj.__flat_setitem__(idx, value)
+from .parametric import Immutable
 
 
-class FlatAny(collections.Sequence):
+__all__ = ['Flat', 'mFlat', 'FlatView']
 
-    '''A immutable list-like object with private mutation. Must define a
-    __flat_setitem__() method to allow private mutation. Flat objects cannot
-    be resized.
-    '''
+
+class Flat(collections.Sequence):
+
+    '''A immutable list-like object that holds a flattened data of a 
+    smallvectors object.'''
 
     __slots__ = ('_data',)
 
@@ -60,97 +18,30 @@ class FlatAny(collections.Sequence):
         else:
             self._data = data
 
-    @classmethod
-    def from_list_unsafe(cls, L):
-        '''Create a new Flat object from a list without copying it. This
-        method should only be called if the Flat object can claim ownership
-        of the input list.
-
-        There is no guarantee that the flat object will share data with the
-        list and caller must not use the input list elsewhere.'''
-
-        new = object.__new__(cls)
-        new._data = L
-        return new
-
     def __repr__(self):
         return 'flat([%s])' % (', '.join(map(repr, self)))
 
-    #
-    # Flat protocol
-    #
-    def __flat_setitem__(self, idx, value):
-        self._data[idx] = value
-
-    #
-    # Sequence interface
-    #
     def __iter__(self):
         return iter(self._data)
 
     def __getitem__(self, idx_or_slice):
-        if isinstance(idx_or_slice, int):
-            return self._data[idx_or_slice]
-        else:
-            return self._data[idx_or_slice]
+        return self._data[idx_or_slice]
 
     def __len__(self):
         return len(self._data)
 
-class Flat(FlatAny):
-    '''An immutable flat object'''
-    
-    
-    __slots__ = ()
-    
-    def __hash__(self):
-        return hash(tuple(self))
 
-class mFlat(FlatAny):
+class mFlat(Flat):
 
-    '''An user-mutable flat object. Used to implement the mutable versions of
-    ``smallvectors`` objects.'''
+    '''A mutable Flat object.'''
 
     __slots__ = ()
 
     def __setitem__(self, idx, value):
-        self.__flat_setitem__(idx, value)
-
-
-class SimpleFlatViewAny(FlatAny):
-    '''A simple flat facade to some arbitrary sequence-like object.'''
-
-    __slots__ = ('data')
-
-    def __init__(self, data):
-        self.data = data
+        self._data[idx] = value
         
-    def __iter__(self):
-        return iter(self.data)
 
-    def __getitem__(self, idx):
-        return self.data[idx]
-
-    def __len__(self):
-        return len(self.data)
-    
-    def __flat_setitem__(self, idx, value):
-        self.data[idx] = value
-
-
-class SimpleFlatView(SimpleFlatViewAny, Flat):
-    '''Facade to some arbitrary sequence-like object -- immutable version'''
-    
-    __slots__ = ()
-
-
-class mSimpleFlatView(SimpleFlatViewAny, mFlat):
-    '''Facade to some arbitrary sequence-like object -- mutable version'''
-    
-    __slots__ = ()
-
-
-class FlatViewAny(FlatAny):
+class FlatView(collections.Sequence):
 
     '''A flat facade to some arbitrary sequence-like object.
 
@@ -162,65 +53,51 @@ class FlatViewAny(FlatAny):
 
     def __init__(self, owner):
         self.owner = owner
+        
+    def __repr__(self):
+        return 'flat([%s])' % (', '.join(map(repr, self)))
 
     def __iter__(self):
-        try:
-            for x in self.owner.__flatiter__():
-                yield x
-        except AttributeError:
-            for i in range(len(self)):
-                yield self[i]
+        for x in self.owner.__flatiter__():
+            yield x
 
     def __len__(self):
-        try:
-            return self.owner.__flatlen__()
-        except AttributeError:
-            return len(self.owner)
+        return self.owner.size
         
     def __getitem__(self, key):
         owner = self.owner
         try:
-            return owner.__flatgetitem__(key)
+            if isinstance(key, int):
+                return owner.__flatgetitem__(key)
+            else:
+                getter = owner.__flatgetitem__
+                indices = range(*key.indices(self.owner.size))
+                return [getter(i) for i in indices]
         except AttributeError:
-            if hasattr(owner, '__flatiter__'):
-                if isinstance(key, int):
-                    N = len(self)
-                    if key < 0:
-                        key = N - key
-                    for i, x in zip(range(N), self):
-                        pass
+            if isinstance(key, int):
+                N = owner.size
+                if key < 0:
+                    key = N - key
+                for i, x in zip(range(N), self):
                     if i == key:
                         return x
-                    raise IndexError(key)
-                
-                elif isinstance(key, slice):
-                    return [self[i] for i in range(*slice)]
-                
                 else:
-                    raise IndexError('invalid index: %r' % key)
+                    raise IndexError(key)
+            
+            elif isinstance(key, slice):
+                indices = range(*slice.indices(N))
+                return [self[i] for i in indices]
+            
             else:
-                return owner[key]
+                raise IndexError('invalid index: %r' % key)
 
     def __setitem__(self, idx, value):
+        if isinstance(self.owner, Immutable):
+            raise TypeError('cannot change immutable object')
         try:
-            self.owner.__setflatitem__(idx, value)
+            setter = self.owner.__flatsetitem__
         except AttributeError: 
-            raise TypeError('object must implement __setflatitem__ in order '
+            raise TypeError('object must implement __flatsetitem__ in order '
                             'to support item assigment' )
-
-
-class FlatView(FlatViewAny, Flat):
-
-    '''A immutable facade to a sequence-like object'''
-    
-    __slots__ = ()
-
-class mFlatView(FlatViewAny, mFlat):
-
-    '''A mutable facade to a sequence-like object'''
-
-    __slots__ = ()
-
-if __name__ == '__main__':
-    import doctest
-    doctest.testmod()
+        else:
+            setter(idx, value)
