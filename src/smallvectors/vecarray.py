@@ -1,5 +1,3 @@
-# -*- coding: utf8 -*-
-
 from collections import MutableSequence
 from smallvectors.array import Array
 from smallvectors import Vec, asvector
@@ -39,8 +37,12 @@ class VecArray(MutableSequence):
         >>> a.norm()
         Array([0, 1, 1])
         '''
-
-        self._data = list(asvector(x) for x in data)
+        data = iter(data)
+        L = self._data = [asvector(next(data))]
+        for u in data:
+            v = asvector(u)
+            assert v.__class__ is L[-1].__class__
+            L.append(v)
 
     @classmethod
     def _new(cls, data):
@@ -138,6 +140,13 @@ class VecArray(MutableSequence):
 
         other = asvector(other)
         return self._new([u + other for u in self._data])
+    
+    def __iadd__(self, other):
+        '''x.__add__(y) <==> x + y'''
+
+        other = asvector(other)
+        self._data[:] = [u + other for u in self._data]
+        return self
 
     def __radd__(self, other):
         '''x.__radd__(y) <==> y + x'''
@@ -155,6 +164,13 @@ class VecArray(MutableSequence):
 
         other = asvector(other)
         return self._new(other - u for u in self._data)
+    
+    def __isub__(self, other):
+        '''x.__add__(y) <==> x + y'''
+
+        other = asvector(other)
+        self._data[:] = [u - other for u in self._data]
+        return self
 
     def __neg__(self):
         '''x.__neg() <==> -x'''

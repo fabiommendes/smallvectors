@@ -19,8 +19,13 @@ Vec(4.0, 6.0)
 '''
 
 from .meta import __version__, __author__
+from .core import *
 from .sequence import seq
 from .vector import *
+from .direction import *
 from .matrix import *
+from .rotmat import *
+from .affine import *
 from .tools import *
 from .vecarray import *
+from .overloads import *

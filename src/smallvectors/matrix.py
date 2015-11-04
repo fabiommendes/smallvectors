@@ -56,16 +56,23 @@ determinante, etc
 
 >>> (matrix * matrix.inv()).eigenvalues()
 [1.0, 1.0]
-    '''
-
+'''
 
 from generic import overload, promote_type, convert
 from generic.operator import mul
+from smallvectors.tools import flatten, dtype as _dtype
 from smallvectors.core import SmallVectorsBase, Immutable, Mutable, AddElementWise
-from smallvectors.core import shape, dtype as _dtype, get_common_base, FlatView, Any
+from smallvectors.core import FlatView
+
 from smallvectors import Vec, asvector
 
-__all__ = ['Mat', 'mMat', 'MatAny']
+__all__ = [
+    # Types
+    'Mat', 'mMat', 'MatAny',
+    
+    # Functions
+    'asmatrix', 'asamatrix', 'asmmatrix', 'identity', 'midentity',
+]
 number = (float, int)
 
 
@@ -107,17 +114,14 @@ class MatAny(SmallVectorsBase, AddElementWise):
     #
     @classmethod
     def __abstract_new__(cls, *args, dtype=None):
-        shape_ = shape(args)
-        try:
-            nrows, ncols = shape_
-        except ValueError:
-            raise ValueError('invalid input shape: %s' % repr(shape_))
-        if dtype is None:
-            dtype = get_common_base(*[_dtype(x) for x in args])
-        return cls[nrows, ncols, dtype](*args)
+        flat, nrows, ncols = flatten(args, 2)
+        return cls[nrows, ncols].fromflat(flat)
 
     def __init__(self, *args):
-        self.flat = self._flat(sum(map(list, args), []), copy=False)
+        flat, N, M = flatten(args, 2)
+        self.flat = self.__flat__(flat, copy=False)
+        if N != self.nrows or M != self.ncols:
+            raise ValueError('data has an invalid shape: %s' % repr((N, M)))
 
     @classmethod
     def fromdict(cls, D):
@@ -138,35 +142,33 @@ class MatAny(SmallVectorsBase, AddElementWise):
     def fromrows(cls, rows, dtype=None):
         '''Build matrix from a sequence of row vectors'''
 
-        # Obtain shape
-        if cls.size is None:
-            N = len(rows)
-            M = len(rows[0])
-        else:
-            M, N = cls.shape
+        data, M, N = flatten(rows, 2)
+        if (M, N)!= cls.shape:
+            if cls.size is None:
+                return cls[M, N, cls.dtype].fromflat(data, dtype)
+            msg = ('data shape %s is not consistent with matrix type %s' % 
+                   ((M, N), cls.shape))
+            raise ValueError(msg)
+        return cls.fromflat(data, dtype=dtype)
             
-        # Collect data
-        data = []
-        for row in rows:
-            if len(row) != M:
-                raise ValueError('rows must be of same length')
-            data.extend(row)
-
-        # Choose the correct dtype
-        if (dtype is None or dtype is cls.dtype) and cls.size is not None:
-            return cls.fromflat(data)
-        elif dtype is Any:
-            return cls.fromflat(data, dtype=_dtype(data))
-        else:
-            T = (cls.__origin__ or cls)[N, M, dtype]
-            return T.fromflat(data)
-
     @classmethod
-    def fromcols(cls, cols):
+    def fromcols(cls, cols, dtype=None):
         '''Build matrix from a sequence of column Vecs'''
 
-        return cls.fromrows(cols).T
+        dataT, N, M = flatten(cols, 2)
+        data = dataT[:]
+        for i in range(M):
+            data[i*N:i*N + N] = dataT[i::M]
+        
+        if (M, N)!= cls.shape:
+            if cls.size is None:
+                return cls[M, N, cls.dtype].fromflat(data, dtype)
+            msg = ('data shape %s is not consistent with matrix type %s' % 
+                   ((M, N), cls.shape))
+            raise ValueError(msg)
+        return cls.fromflat(data, dtype=dtype)
 
+    
     #
     # Attributes
     #
@@ -249,8 +251,7 @@ class MatAny(SmallVectorsBase, AddElementWise):
     def col(self, i):
         '''Return the i-th column Vec'''
 
-        matrix = self.ncols
-        return asvector(self.flat[i::matrix])
+        return asvector(self.flat[i::self.ncols])
 
     def row(self, i):
         '''Return the i-th row Vec.
@@ -258,9 +259,9 @@ class MatAny(SmallVectorsBase, AddElementWise):
         Same as matrix[i], but exists for symmetry with the matrix.col(i)
         method.'''
 
-        matrix = self.ncols
-        start = i * matrix
-        return asvector(self.flat[start:start + matrix])
+        M = self.ncols
+        start = i * M
+        return asvector(self.flat[start:start + M])
 
     def copy(self, D=None, **kwds):
         '''Return a copy of matrix possibly changing some terms.
@@ -345,7 +346,11 @@ class MatAny(SmallVectorsBase, AddElementWise):
         True
         '''
 
-        return self.fromrows(self.cols())
+        N, M = self.shape
+        if N == M:
+            return self.fromcols(self.rows())
+        else:
+            return self.__origin__[M, N, self.dtype].fromcols(self.rows())
 
 
     #
@@ -353,119 +358,134 @@ class MatAny(SmallVectorsBase, AddElementWise):
     #
     def __raise_badshape(self, data, s1):
         fmt = data, s1, self.nrows, self.nrows
-        raise ValueError('incompatible %s size: %s in (%sx%s) matrix' % fmt)
+        raise ValueError('incompatible %s size: %s with %s x %s matrix' % fmt)
     
     def withrow(self, data, index=None):
-        '''Return a new matrix with and extra data inserted in the given index.
-        If not index is given, insert data at the end.
+        '''Return a new matrix with and extra rows inserted in the given index.
+        If not index is given, insert rows at the end.
 
         If the argument ``data`` is a matrix, multiple rows are inserted.'''
 
         N, M = self.shape
-        data = list(self.flat)
+        flat = list(self.flat)
         
         if isinstance(data, Mat):
-            if data.ncols != N:
+            if data.ncols != M:
                 self.__raise_badshape('row', data.ncols)
-            newdata = data.flat
-            M += data.nrows
+            extra = list(data.flat)
+            N += data.nrows
         else:
-            newdata = list(data)
-            if len(newdata) != N:
-                self.__raise_badshape('row', data.ncols)
-            M += 1
+            extra = list(data)
+            if len(data) != M:
+                self.__raise_badshape('row', len(data))
+            N += 1
             
         if index is None:
-            data.extend(newdata)
+            flat.extend(extra)
         else:
-            index = N * index
-            data = data[:index] + newdata + data[index:]
+            index = M * index
+            flat = flat[:index] + extra + flat[index:]
             
         #FIXME: infer correct dtype
-        return Mat[N, M, self.dtype].fromflat(data, copy=False)
+        T = self.__origin__[N, M, self.dtype]
+        return T.fromflat(flat, copy=False)
 
     def withcol(self, data, index=None):
         '''Similar to M.withrow(), but works with columns'''
 
         N, M = self.shape
-        cols = list(self.cols)
+        cols = list(self.cols())
         if isinstance(data, Mat):
-            if data.nrows != M:
+            if data.nrows != N:
                 self.__raise_badshape('column', data.ncols)
             if index is None:
-                cols.extend(data.cols)
+                cols.extend(data.cols())
             else:
                 cols = cols[:index] + list(data.cols) + cols[index:]
+            M += len(data)
         
         else:
+            if len(data) != N:
+                self.__raise_badshape('row', len(data))
             if index is None:
                 cols.append(list(data))
             else:
                 cols.insert(index, list(data))
-
+            M += 1
+        
         #FIXME: infer correct dtype
-        return Mat[N, M, self.dtype].fromcols(data)
+        T = self.__origin__[N, M, self.dtype]
+        return T.fromcols(cols)
 
-    def droppingcol(self, idx=None):
+    def droppingcol(self, idx=-1):
         '''Return a pair (matrix, col) with the new matrix with the extra column
         removed'''
 
-        transpose, col = self.T.drop_row(idx)
-        return transpose.T, col
+        M, N = self.shape
+        data = list(self.cols())
+        col = data.pop(idx)
+        T = self.__origin__[M, N - 1, self.dtype]
+        return T.fromcols(data), col
 
-    def droppingrow(self, idx=None):
+    def droppingrow(self, idx=-1):
         '''Return a pair (matrix, row) with the new matrix with the extra row
         removed'''
 
-        if idx is None:
-            idx = -1
-        data = self.aslists()
+        M, N = self.shape 
+        data = list(self.rows())
         row = data.pop(idx)
-        return self.fromrows(data), asvector(row)
+        T = self.__origin__[M - 1, N, self.dtype]
+        return T.fromrows(data), row
 
-    def selectcols(self, cols):
-        '''Return a new matrix with the columns corresponding to the given
-        sequence of indexes'''
+    def selectcols(self, indexes):
+        '''Return a new matrix with the columns with given indexes'''
 
-        cols = tuple(cols)
-        data = [[L[i] for i in cols] for L in self.aslists()]
-        return self.fromrows(data)
+        L = list(self.cols())
+        data = [L[i] for i in indexes]
+        T = self.__origin__[self.nrows, len(data), self.dtype]
+        return T.fromcols(data)
     
-    def selectrows(self, rows):
-        pass
+    def selectrows(self, indexes):
+        '''Return a new mcatrix with the rows corresponding to the given
+        sequence of indexes'''
+        
+        L = list(self.rows())
+        data = [L[i] for i in indexes]
+        T = self.__origin__[len(data), self.ncols, self.dtype]
+        return T.fromrows(data)
 
     #
     # Magic methods
     #
-    def _fmt_number(self, x):
-        # TODO: fix this to all matrices
-        return ('%.3f' % x).rstrip('0').rstrip('.')
-
     def __repr__(self):
         data = ', '.join([repr(list(x)) for x in self])
         return '%s(%s)' % (self.__origin__.__name__, data)
         
     def __str__(self):
-        N, matrix = self.shape
-        fmt = self._fmt_number
-        rows = [[fmt(x) for x in row] for row in self.rows()]
-        sizes = sum([[len(x) for x in row] for row in rows], [])
-        sizes_T = [sizes[i::N] for i in range(matrix)]
-        sizes_max = [max(col) for col in sizes_T]
-        rows = [[x.rjust(n) for n, x in zip(sizes_max, row)] for row in rows]
-        rows = ['|%s|' % ('  '.join(row)) for row in rows]
-        return '\n'.join(rows)
+        def fmt(x):
+            if isinstance(x, float):
+                return ('%.3f' % x).rstrip('0').rstrip('.')
+            else:
+                return repr(x)
+
+        N, M = self.shape
+        data = list(map(fmt, self.flat))
+        cols = [data[i::M] for i in range(M)]
+        sizes = [max(map(len, col)) for col in cols]
+        cols = [[x.rjust(k) for x in col] for (col, k) in zip(cols, sizes)]
+        lines = ['|%s|' % '  '.join(line) for line in zip(*cols)]
+        return '\n'.join(lines)
 
     def __len__(self):
         return self.nrows
 
     def __iter__(self):
-        N, matrix = self.shape
+        N, M = self.shape
         data = self.flat
         start = 0
         for _ in range(N):
-            yield asvector(data[start:start + matrix])
-            start += matrix
+            yield asvector(data[start:start + M])
+            start += M
 
     def __getitem__(self, idx):
         if isinstance(idx, tuple):
@@ -474,7 +494,7 @@ class MatAny(SmallVectorsBase, AddElementWise):
 
         elif isinstance(idx, int):
             return self.row(idx)
-
+        
     #
     # Arithmetic operations
     #
@@ -581,37 +601,39 @@ class Square:
         '''Computes the trace (i.e., sum of all elements in the diagonal)'''
 
         N = self.nrows
-        return sum(i * N + i for i in range(N))
+        data = self.flat
+        return sum(data[i * N + i] for i in range(N))
 
     def diag(self):
         '''Return a vector with the diagonal elements of the matrix'''
 
         N = self.nrows
         data = self.flat
-        return asvector([data[i * N + i] for i in range(N)])
+        return asvector([data.flat[i * N + i] for i in range(N)])
 
-    def with_diag(self, diag):
-        '''Return a copy of the matrix set with the given diagonal terms'''
+    def withdiag(self, diag):
+        '''Return a copy of the matrix with different diagonal terms'''
 
-        N = self.nrows
-        if len(diag) != N:
+        M = self.nrows
+        if len(diag) != M:
             raise ValueError('wrong size for diagonal')
 
         # Write diagonal in a copy of flat data
         data = list(self.flat)
-        for i, x in zip(range(N), diag):
-            data[i * N + i] = x
+        for i, x in enumerate(diag):
+            data[i * M + i] = x
 
-        return self._from_flat(data)
+        return self.fromflat(data, copy=False)
 
-    def nondiag(self):
-        '''Return a copy of the matrix with diagonal removed'''
+    def droppingdiag(self):
+        '''Return a copy of the matrix with diagonal removed (all elements are 
+        set to zero)'''
 
         N = self.nrows
         data = list(self.flat)
         for i in range(N):
             data[i * N + i] *= 0
-        return self._from_flat(data)
+        return self.fromflat(data, copy=False)
 
     def eig(self):
         '''Return a tuple of (eigenvalues, eigenvectors).'''
@@ -636,12 +658,12 @@ class Square:
     def inv(self):
         '''Returns the inverse matrix'''
 
-        # Simple and naive matrix inversion
+        # Simple and naive matrix inversion using Gaussian elimination
         # Creates extended matrix
-        N, M = self.shape
+        N = self.nrows
         dtype = promote_type(float, self.dtype)
-        matrix = mMat[N, M, dtype].fromflat(self.flat)
-        matrix = matrix.append_col(identity(N))
+        matrix = mMat[N, N, dtype].fromflat(self.flat)
+        matrix = matrix.withcol(identity(N))
 
         # Make left hand side upper triangular
         for i in range(0, N):
@@ -649,24 +671,24 @@ class Square:
             # in pivoting position
             trunc_col = list(matrix.col(i))[i:]
             _, idx = max([(abs(c), i) for (i, c) in enumerate(trunc_col)])
-            matrix.iswap_rows(i, idx + i)
+            matrix.swaprows(i, idx + i)
 
             # Find linear combinations that make all rows below the current one
             # become equal to zero in the current column
             Z = matrix[i, i]
             for k in range(i + 1, N):
-                matrix.irow_add(k, i, -matrix[k, i] / Z)
+                matrix.rowadd(k, matrix[i] * (-matrix[k, i] / Z))
 
             # Make the left hand side diagonal
             Z = matrix[i, i]
             for k in range(0, i):
-                matrix.irow_add(k, i, -matrix[k, i] / Z)
+                matrix.rowadd(k, matrix[i] * (-matrix[k, i] / Z))
 
         # Normalize by the diagonal
         for i in range(N):
-            matrix.irow_mul(i, 1 / matrix[i, i])
+            matrix.rowmul(i, 1 / matrix[i, i])
 
-        out = matrix.select_cols(range(M, 2 * M))
+        out = matrix.selectcols(range(M, 2 * M))
         return Mat[N, N, dtype].fromflat(out.flat)
 
     def solve(self, b, method='gauss', **kwds):
@@ -675,15 +697,15 @@ class Square:
         method = getattr(self, 'solve_%s' % method)
         return method(b, **kwds)
 
-    def solve_jacobi(self, b, tol=1e-3, x0=None, maxiter=None):
+    def solve_jacobi(self, b, tol=1e-3, x0=None, maxiter=1000):
         '''Solve a linear using Gauss-Jacobi method'''
 
         b = asvector(b)
         x = b * 0
-        D = self.from_diag([1.0 / x for x in self.diag()])
-        R = self.nondiag()
+        D = self.fromdiag([1.0 / x for x in self.diag()])
+        R = self.droppingdiag()
 
-        for _ in range(maxiter or int(1e6)):
+        for _ in range(maxiter):
             x, old = D * (b - R * x), x
             if (x - old).norm() < tol:
                 break
@@ -694,33 +716,45 @@ class Square:
 
         # Creates extended matrix
         N = self.nrows
-        matrix = self.mutable().append_col(b)
-        for i in range(0, N):
+        matrix = mMat[N, N, self._floating].fromflat(self.flat)
+        matrix = matrix.withcol(b)
+
+        for i in range(0, N - 1):
             # Search for maximum value in the truncated column and put it
             # in pivoting position
-            trunc_col = list(matrix.col(i))[i:]
+            trunc_col = matrix.col(i)[i:]
             _, idx = max([(abs(c), i) for (i, c) in enumerate(trunc_col)])
-            matrix.iswap_rows(i, idx + i)
-
+            matrix.swaprows(i, idx + i)
+            
             # Find linear combinations that make all rows below the current one
             # become equal to zero in the current column
             Z = matrix[i, i]
             for k in range(i + 1, N):
-                matrix.irow_add(k, i, -matrix[k, i] / Z)
-
+                matrix.rowadd(k, matrix[i] * (-matrix[k, i] / Z))
+            
         # Solve equation Ax=b for an upper triangular matrix
-        A, b = matrix.drop_col()
+        A, b = matrix.droppingcol()
+        return A.solve_triangular(b)
+        
+    def solve_triangular(self, b, lower=False):
+        '''Solve a triangular system.
+        
+        If lower=True, it assumes a lower triangular matrix, otherwise (default)
+        assumes an upper triangular matrix.
+        '''
+        
+        N = self.nrows
         x = [0] * N
-        for i in range(N - 1, -1, -1):
-            x[i] = (b[i] - sum(A * x)) / A[i, i]
-        return x
+        if lower:
+            for i in range(N):
+                x[i] = (b[i] - self[i].dot(x)) / self[i, i]
+        else:
+            for i in range(N - 1, -1, -1):
+                x[i] = (b[i] - self[i].dot(x)) / self[i, i]
+        return asvector(x)
 
 
 class Mat2x2(Square):
-
-    '''A 2 x 2 matrix'''
-
-
     __slots__ = ('_a', '_b', '_c', '_d')
 
     def __init__(self, row1, row2):
@@ -834,7 +868,8 @@ class Mat2x2(Square):
 
 
 class Mat3x3(object):
-
+    __slots__ = ('flat',) 
+    
     def det(self):
         a, b, c, d, e, f, g, h, i = self.flat
         d1 = + (a * e * i)
@@ -911,64 +946,68 @@ class mMat(MatAny, Mutable):
     
     __slots__ = ()
 
-    def iswap_cols(self, i, j):
+    def swapcols(self, i, j):
         '''Swap columns i and j *inplace*'''
 
-        raise NotImplementedError
+        if i != j:
+            M = self.nrows
+            self.flat[i::M], self.flat[j::M] = self.flat[j::M], self.flat[i::M]
 
-    def iswap_rows(self, i, j):
+    def swaprows(self, i, j):
         '''Swap rows i and j *inplace*'''
 
-        if i == j:
-            return
+        if i != j:
+            self[i], self[j] = self[j], self[i] 
         
-        matrix = self.ncols
-        data = self.flat
-        start_i = i * matrix
-        start_j = j * matrix
-        for r in range(matrix):
-            ki = start_i + r
-            kj = start_j + r
-            # FIXME: assert that mMat has a mutable flat
-            self.flat._data[ki], self.flat._data[kj] = data[kj], data[ki]
+    def rowadd(self, i, vec):
+        '''Adds the contents of a vector into the i-th row *INPLACE*'''
 
-    def irow_add(self, i, j, alpha=1):
-        '''Adds alpha times row j to row i *inplace*'''
-
-        matrix = self.ncols
+        N, M, dtype = self.__parameters__
+        if i < 0:
+            i = M - i
         data = self.flat
-        start_i = i * matrix
-        start_j = j * matrix
-        for r in range(matrix):
-            ki = start_i + r
-            kj = start_j + r
+        for j in range(M):
+            data[i * M + j] = convert(data[i * M + j] + vec[j], dtype)
             
-            # FIXME: assert mutable flat
-            self.flat._data[ki] += alpha * data[kj]
+    def coladd(self, i, vec):
+        '''Adds the contents of a vector into the i-th column *INPLACE*'''
 
-    def irow_mul(self, i, value):
-        '''Multiply row by the given value *inplace*'''
-
-        matrix = self.ncols
+        N, M, dtype = self.__parameters__
+        if i < 0:
+            i = N - i
         data = self.flat
-        for j in range(matrix):
-            # FIXME: assert mutable data
-            self.flat._data[i * matrix + j] *= value
+        for j in range(N):
+            data[j * M + i] = convert(data[j * M + i] + vec[j], dtype)
 
-    def icol_add(self, i, j, alpha=1):
-        '''Adds alpha times column j to column i *inplace*'''
+    def rowmul(self, i, value):
+        '''Multiply the i-th row by the given value *INPLACE*'''
 
-        raise NotImplementedError
+        N, M, dtype = self.__parameters__
+        if i < 0:
+            i = M - i
+        data = self.flat
+        for j in range(M):
+            data[i * N + j] = convert(data[i * N + j] * value, dtype)
+    
+    def colmul(self, i, value):
+        '''Multiply the i-th column by the given value *INPLACE*'''
+
+        N, M, dtype = self.__parameters__
+        if i < 0:
+            i = N - i
+        data = self.flat
+        for j in range(N):
+            data[j * N + i] = convert(data[j * N + i] * value, dtype)
 
     def __setitem__(self, idx, value):
         if isinstance(idx, tuple):
             i, j = idx
-            k = self.nrows * i + j
-            self.flat[k] = value
-        else:
-            data = self.flat
-            for k, x in zip(range(idx, idx + self.ncols), value):
-                data[k] = x
+            self.flat[i * self.ncols + j] = convert(value, self.dtype)
+        elif isinstance(idx, int):
+            M = self.ncols
+            start = idx * M
+            dtype = self.dtype
+            self.flat[start:start + M] = [convert(x, dtype) for x in value]
 
 
 #
@@ -1035,19 +1074,20 @@ if __name__ == '__main__':
     print(matrix)
     print(matrix * matrix)
     print(matrix.inv())
-    print(matrix * matrix.inv(), '\n')
+    print(matrix * matrix.inv())
+    print('...')
+    print(matrix.withcol([1, 2]), '\n')
+    print('...')
+    print(matrix.withrow([1, 2]), '\n')
 
     M = Mat([0, 1])
-    print(M, '\n')
+    
     print(M.T, '\n')
     M = Mat([0], [1])
     print(repr(M))
 
-    # print(matrix)
-    #v = matrix.solve(u)
-    #print(u)
-    #print(matrix * v)
-    #print(u)
+    v = matrix.solve(u)
+    print(u, v, matrix * v)
 
     import doctest
     doctest.testmod()

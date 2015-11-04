@@ -1,4 +1,7 @@
-from .vectors import Vec
+from .vector import Vec
+
+
+__all__ = ['Direction', 'asdirection'] 
 
 #
 # Direction
@@ -58,7 +61,6 @@ class Direction2D:
         new.x = x * cos_t - y * sin_t
         new.y = x * sin_t + y * cos_t
         return new
-
 
 
 #

@@ -9,8 +9,8 @@ import operator
 from generic import promote, set_promotion, set_conversion, get_conversion, convert
 from generic.errors import InexactError
 from generic.operator import add, sub
+from .tools import dtype as _dtype
 from .core import FlatView
-from .core import dtype as _dtype
 from .core import Immutable, Mutable, Normed, AddElementWise, MulScalar
 from .core import SmallVectorsBase
 
@@ -499,7 +499,7 @@ class Vec2D(VecND):
             return Vec.norm(self, which)
 
 
-class Vec3D:
+class Vec3D(VecND):
     '''Vector functions that only works in 3D.
     
     These functions are inserted to all Vec[3, ...] classes upon class 
@@ -572,7 +572,7 @@ class Vec3D:
         a, b, c = other
         return Vec(y * c - z * b, z * a - x * c, x * b - y * a)
 
-class Vec4D(SmallVectorsBase):
+class Vec4D(VecND):
     '''Vector functions that only works in 4D.
     
     These functions are inserted to all Vec[4, ...] classes upon class 

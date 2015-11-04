@@ -1,130 +1,81 @@
-from .matrix import MatAny, Mat, mMat  
+import numbers
+from smallvectors.matrix import Mat
 
-class RotMat2DAny(MatAny[2, 2]):
+class Unitary(Mat):
 
-    '''Cria uma matriz de rotação que realiza a rotação pelo ângulo theta
-    especificado'''
+    '''Base class for all unitary matrices (e.g., rotation matrices).
+    
+    The conjugate of an unitary matrix is equal to its inverse. Unitary matrices
+    are immutable since almost any modification to the matrix would break 
+    unitarity. 
+    '''
 
-    __slots__ = ['_theta', '_transposed']
-
-    def __init__(self, theta):
-        self._theta = float(theta)
-        self._transposed = None
-
-        C = m.cos(theta)
-        S = m.sin(theta)
-        M = [[C, -S], [S, C]]
-        super(RotMat2, self).__init__(M)
-
-    def rotate(self, theta):
-        return RotMat2(self.theta + theta)
-
-    def transpose(self):
-        if self._transposed is None:
-            self._transposed = super(RotMat2, self).transpose()
-        return self._transposed
+    __slots__ = ()
+    
+    @classmethod
+    def __preprarebases__(cls, params):
+        N, M, dtype = params
+        if N != M:
+            raise TypeError('unitary matrices must be squared')
+        if issubclass(dtype, numbers.Integral):
+            raise TypeError('cannot create integer valued unitary matrices') 
+        return super().__preparebases__(params)
 
     def inv(self):
-        return self.transpose()
+        return self.conjugate()
 
-    @property
-    def theta(self):
-        return self.theta
-
+    def det(self):
+        return 1.0
 
 
-class RotMat2(Mat2):
+class Rotation2d(Unitary[2, 2, float]):
 
-    '''Cria uma matriz de rotação que realiza a rotação pelo ângulo theta
-    especificado'''
+    '''Rotation matrix in 2D'''
 
-    __slots__ = ['_theta', '_transposed']
+    __slots__ = ('theta',)
 
     def __init__(self, theta):
-        self._theta = float(theta)
-        self._transposed = None
-
-        C = m.cos(theta)
-        S = m.sin(theta)
-        M = [[C, -S], [S, C]]
-        super(RotMat2, self).__init__(M)
+        self.theta = theta + 0.0
+        C = self._cos(theta)
+        S = self._sin(theta)
+        super().__init__([C, -S], [S, C])
 
     def rotate(self, theta):
-        return RotMat2(self.theta + theta)
-
-    def transpose(self):
-        if self._transposed is None:
-            self._transposed = super(RotMat2, self).transpose()
-        return self._transposed
-
-    def inv(self):
-        return self.transpose()
-
-    @property
-    def theta(self):
-        return self.theta
+        return self.__class__(self.theta + theta)
 
 
-class RotMat3:
+class Rotation3d(Unitary[3, 3, float]):
 
     '''
         Cria uma matriz de rotação que realiza a rotação pelo ângulo theta
         especificado
     '''
-    __slots__ = ['_theta', '_transposed']
+    __slots__ = ('theta',)
 
     def __init__(self, theta, axis):
-        self._theta = float(theta)
-        self._transposed = None
+        self.theta = float(theta)
+        a, b, c = axis
+        C = self._cos(theta)
+        S = self._sin(theta)
+        Ccompl = 1 - C
+        aa = a * a
+        bb = b * b
+        cc = c * c
+        ab = a * b
+        ac = a * c
+        bc = b * c
+        super().__init__(
+            [C + Ccompl * aa, Ccompl * ab + S * c, Ccompl * ac - S * b],
+            [Ccompl * ab - S * c, C + Ccompl * bb, Ccompl * bc + S * a],
+            [Ccompl * ac + S * b, Ccompl * bc - S * a, C + Ccompl * cc],
+        )
 
-        C = m.cos(theta)
-        S = m.sin(theta)
-
-        if isinstance(axis, str) and axis == 'x':
-            M = [[1, 0, 0], [0, C, - S], [0, S, C]]
-        elif isinstance(axis, str) and axis == 'y':
-            M = [[C, 0, S], [0, 1, 0], [- S, 0, C]]
-        elif isinstance(axis, str) and axis == 'z':
-            M = [[C, - S, 0], [S, C, 0], [0, 0, 1]]
-        elif isinstance(axis, Vec3):
-            M = self._rotate_by_vector_axis(theta, axis)
-        else:
-            raise InvalidAxisError("Eixo '" + axis + "' invalido.")
-
-        super(RotMat3, self).__init__(M)
-
-    def rotate(self, theta):
-        return RotMat3(self._theta + theta)
-
-    def transpose(self):
-        if self._transposed is None:
-            self._transposed = super(RotMat3, self).transpose()
-        return self._transposed
-
-    def inv(self):
-        return self.transpose()
-
-    @property
-    def theta(self):
-        return self._theta
-
-    def _rotate_by_vector_axis(self, theta, vector):
-        a, b, c = vector.as_tuple()
-        C = m.cos(theta)
-        S = m.sin(theta)
-
-        line1 = [(C + (1 - C) * (a ** 2)),
-                 (((1 - C) * a * b) + (S * c)),
-                 (((1 - C) * a * c) - (S * b))]
-        line2 = [(((1 - C) * b * a) - (S * c)),
-                 (C + ((1 - C) * (b ** 2))),
-                 (((1 - C) * b * c) + (S * a))]
-        line3 = [(((1 - C) * c * a) + (S * b)),
-                 (((1 - C) * c * b) - (S * a)),
-                 (C + ((1 - C) * (c ** 2)))]
-
-        M = [line1, line2, line3]
-        return M
-
-
-
+if __name__ == '__main__':
+    print(Rotation2d.__concrete__)
+    print(Rotation2d.__subtypes__)
+    print(Rotation2d.__abstract__)
+    print(Rotation2d.mro())
+    R2 = Rotation2d(0.1)
+    R3 = Rotation3d(0.1, (0, 1, 0))
+    print(R2)
+    print(R3)

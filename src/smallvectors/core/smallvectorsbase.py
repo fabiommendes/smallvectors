@@ -1,21 +1,23 @@
+import sys
 import math
+import collections
 from numbers import Number
-from generic import convert
-from .parametric import ParametricMeta, ABC, Immutable, Mutable, Any
-from .flatobject import Flat, mFlat, FlatView
-from .util import lazy, dtype as _dtype, shape as _shape
+from generic import convert, promote_type
+from generic.parametric import ParametricMeta, ABC, Immutable, Mutable, Any
+from ..tools import lazy, dtype as _dtype, shape as _shape
 
 
 __all__ = [
-    'SmallVectorsBase',
-    'SmallVectorsMeta',
-    'Immutable',
-    'Mutable',
-    'Sequentiable',
-    'Serializable',
+    'SmallVectorsBase', 'SmallVectorsMeta',
+    'Immutable', 'Mutable',
+    'Sequentiable', 'Serializable',
+    'Flat', 'mFlat', 'FlatView',
 ]
 
 
+#
+# Utility functions
+#
 def _default_smallvectors_type_ns(params):
     '''Compute a dict with shape, ndim, dtype and size attributes computed from 
     the given parameters'''
@@ -47,6 +49,148 @@ def _default_smallvectors_type_ns(params):
     return ns
 
 
+#
+# Flat and FlatView
+#
+class Flat(collections.Sequence):
+
+    '''A immutable list-like object that holds a flattened data of a 
+    smallvectors object.'''
+
+    __slots__ = ('_data',)
+
+    def __init__(self, data, copy=True):
+        if copy:
+            self._data = list(data)
+        else:
+            self._data = data
+
+    def __repr__(self):
+        return 'flat([%s])' % (', '.join(map(repr, self)))
+
+    def __iter__(self):
+        return iter(self._data)
+
+    def __getitem__(self, idx_or_slice):
+        return self._data[idx_or_slice]
+
+    def __len__(self):
+        return len(self._data)
+
+
+class mFlat(Flat):
+
+    '''A mutable Flat object.'''
+
+    __slots__ = ()
+
+    def __setitem__(self, idx, value):
+        self._data[idx] = value
+        
+
+class FlatView(collections.Sequence):
+
+    '''A flat facade to some arbitrary sequence-like object.
+
+    It accepts two functions: flat_index and owner_index that maps indexes from
+    owner to flat and from flat to owner respectivelly. An explicit size can
+    also be given.'''
+
+    __slots__ = ('owner',)
+
+    def __init__(self, owner):
+        self.owner = owner
+        
+    def __repr__(self):
+        return 'flat([%s])' % (', '.join(map(repr, self)))
+
+    def __iter__(self):
+        for x in self.owner.__flatiter__():
+            yield x
+
+    def __len__(self):
+        return self.owner.__flatlen__()
+    
+    def __getitem__(self, key):
+        owner = self.owner
+        try:
+            if isinstance(key, int):
+                return owner.__flatgetitem__(key)
+            else:
+                getter = owner.__flatgetitem__
+                indices = range(*key.indices(self.owner.size))
+                return [getter(i) for i in indices]
+        except AttributeError:
+            N = owner.size
+            
+            if isinstance(key, int):
+                if key < 0:
+                    key = N - key
+                for i, x in enumerate(self):
+                    if i == key:
+                        return x
+                else:
+                    raise IndexError(key)
+            
+            elif isinstance(key, slice):
+                indices = range(*key.indices(N))
+                return [self[i] for i in indices]
+            
+            else:
+                raise IndexError('invalid index: %r' % key)
+
+    def __setitem__(self, key, value):
+        if isinstance(self.owner, Immutable):
+            raise TypeError('cannot change immutable object')
+        try:
+            setter = self.owner.__flatsetitem__
+        except AttributeError: 
+            raise TypeError('object must implement __flatsetitem__ in order '
+                            'to support item assigment' )
+        else:
+            N = self.owner.size
+            
+            if isinstance(key, int):
+                if key < 0:
+                    key = N - key
+                for i, _ in enumerate(self):
+                    if i == key:
+                        return setter(i, value)
+                else:
+                    raise IndexError(key)
+            
+            elif isinstance(key, slice):
+                indices = range(*key.indices(N))
+                return [setter(i, x) for i, x in zip(indices, value)]
+            
+            else:
+                raise IndexError('invalid index: %r' % key)
+
+
+#
+# Base classes
+#
+class Mathematical(ABC):
+    '''Defines a set of overridable mathematical functions as private methods.
+    
+    Class implementors should use these methods instead of functions in the 
+    math module so subclasses can reuse implementations with their own math
+    functions (maybe using numpy, simpy, etc).'''
+     
+    # Mathematical functions
+    _sqrt = math.sqrt
+    _sin = math.sin
+    _cos = math.cos
+    _tan = math.tan
+    _acos = math.acos
+    _asin = math.asin
+    _atan = math.atan
+    _atan2 = math.atan2
+    _float = float
+    _floating = float
+    _number = (float, int, Number)
+
+
 class Serializable(ABC):
     '''Base class for all objects that have a .flat attribute'''
 
@@ -67,15 +211,16 @@ class Serializable(ABC):
         if cls.__concrete__:
             if dtype is None or dtype is cls.dtype:
                 new = object.__new__(cls)
-                if issubclass(cls, Mutable):
-                    new.flat = Flat(data, copy)
-                else:
-                    new.flat = mFlat(data, copy)
+                new.flat = cls.__flat__(data, copy)
                 return new
+        elif cls.size is None:
+            raise TypeError('shapeless types cannot instanciate objects')
         
         dtype = dtype or cls.dtype    
         if dtype is Any or dtype is None:
+            data = list(data)
             dtype=_dtype(data)
+            
         T = cls.__origin__[cls.shape + (dtype,)]
         return T.fromflat(data, copy=copy)
     
@@ -140,6 +285,8 @@ class Sequentiable(ABC):
             return False
 
         if self.__origin__ is getattr(other, '__origin__', None):
+            if self.shape != other.shape:
+                return False
             return all(x == y for (x, y) in zip(self.flat, other.flat))
         else:
             return all(x == y for (x, y) in zip(self, other))
@@ -152,9 +299,11 @@ class Sequentiable(ABC):
 
     
 class SmallVectorsMeta(ParametricMeta):
-    pass
+    '''Metaclass for smallvector types'''
 
-class SmallVectorsBase(Serializable, Sequentiable, metaclass=SmallVectorsMeta):
+
+class SmallVectorsBase(Mathematical, Serializable, Sequentiable, 
+                       metaclass=SmallVectorsMeta):
     '''
     Base class for all smallvectors types.
     
@@ -166,17 +315,6 @@ class SmallVectorsBase(Serializable, Sequentiable, metaclass=SmallVectorsMeta):
     __abstract__ = True
     __parameters__ = None
     __slots__ = ()
-
-    # Mathematical functions
-    _sqrt = math.sqrt
-    _sin = math.sin
-    _cos = math.cos
-    _tan = math.tan
-    _acos = math.acos
-    _asin = math.asin
-    _atan = math.atan
-    _atan2 = math.atan2
-    _number = (float, int, Number)
 
     # Basic parameters of smallvectors types
     shape = None
@@ -195,11 +333,20 @@ class SmallVectorsBase(Serializable, Sequentiable, metaclass=SmallVectorsMeta):
         '''Assure that the resulting type has the correct shape, size, dim, 
         dtype'''
         
+        # Shape parameters
         if cls.__parameters__ is None or cls.shape is None:
             default_ns = _default_smallvectors_type_ns(cls.__parameters__)
             for k, v in default_ns.items():
                 if getattr(cls, k, None) is None:
                     setattr(cls, k, v)
+                    
+        # Pick up flat object
+        flat = mFlat if issubclass(cls, Mutable) else Flat
+        cls.__flat__ = flat
+        
+        # Floating parameter
+        if cls.dtype is not None:
+            cls._floating = promote_type(cls._float, cls.dtype)
         
         assert cls.dtype is not Any, cls
 
@@ -215,6 +362,9 @@ class SmallVectorsBase(Serializable, Sequentiable, metaclass=SmallVectorsMeta):
             shape = _shape(args)
         return cls[shape + (dtype,)](*args)
 
+    def __flatlen__(self):
+        return self.size
+
     def convert(self, dtype):
         '''Convert object to the given data type'''
 
@@ -223,3 +373,58 @@ class SmallVectorsBase(Serializable, Sequentiable, metaclass=SmallVectorsMeta):
             return self
         else:
             return cls.__origin__(*self, dtype=dtype)
+
+
+#
+# Override Mutable and Immutable base classes
+#
+def get_sibling_classes(cls):
+    parent = cls.mro()[1]
+    mod = sys.modules[cls.__module__]
+    names = (x for x in dir(mod) if not x.startswith('_'))
+    objects = (getattr(mod, x) for x in names)
+    types = (x for x in objects if isinstance(x, type))
+    siblings = [T for T in types if issubclass(T, parent)]
+    return siblings
+    
+    
+class Mutable(Mutable):
+    '''Base class for all mutable types'''
+    
+    def mutable(self):
+        '''Return a mutable copy of object'''
+        
+        return self.copy()
+    
+    def immutable(self):
+        '''Return an immutable copy of object'''
+        
+        try:
+            cls = self._immutable_
+        except AttributeError:
+            siblings = get_sibling_classes(type(self))
+            immutable = [T for T in siblings if issubclass(T, Immutable)]
+            assert len(immutable) == 1
+            cls = immutable[0]
+        return cls(*self)
+    
+    
+class Immutable(Immutable):
+    '''Base class for all immutable types'''
+    
+    def mutable(self):
+        '''Return a mutable copy of object'''
+        
+        try:
+            cls = self._mutable_
+        except AttributeError:
+            siblings = get_sibling_classes(type(self))
+            mutable = [T for T in siblings if issubclass(T, Mutable)]
+            assert len(mutable) == 1
+            cls = mutable[0]
+        return cls(*self)
+    
+    def immutable(self):
+        '''Return an immutable copy of object'''
+        
+        return self

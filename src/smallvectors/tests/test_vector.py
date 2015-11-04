@@ -136,6 +136,21 @@ class Vec2Test(unittest.TestCase):
 # class Vec2DecimalTest(Vec2IntTest):
 #    test_type = Vec[2, Decimal]
 
+
+class VecGenericTestCase(unittest.TestCase):
+    def test_almost_equal(self):
+        u = Vec(1, 2)
+        v = Vec(1, 2)
+        self.assertAlmostEqual(u, v)
+        self.assertAlmostEqual(u, (1, 2))
+    
+    def test_almost_equal_non_equal(self):
+        u = Vec(1 + 1e-9, 2)
+        v = Vec(1, 2)
+        self.assertAlmostEqual(u, v)
+        self.assertAlmostEqual(u, (1, 2))
+        
+
 if __name__ == '__main__':
     unittest.main()
 

@@ -1,8 +1,7 @@
 '''
-Created on 26 de out de 2015
-
-@author: chips
+Abstract arithmetic operations
 '''
+
 from numbers import Number
 from generic import promote_type
 from generic.operator import add, add_safe, sub_safe, mul_safe, truediv_safe
@@ -83,7 +82,12 @@ def _check_scalar(obj, other, op):
 
 def _check_vector(obj, other, op):
     try:
+        if obj.__class__ is other.__class__:
+            return
         if obj.__origin__ is other.__origin__:
+            if obj.shape != other.shape:
+                data = obj.shape, other.shape
+                raise ValueError('incompatible shapes: %s and %s' % data)
             return
     except AttributeError:
         return op(obj, other)

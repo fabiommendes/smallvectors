@@ -4,12 +4,14 @@ smallvectors classes.
 '''
 
 import abc
+import functools
 from .smallvectorsbase import ABC, Mutable, Immutable, SmallVectorsBase
 
 def mutating(func):
     '''Decorator that marks functions for suitable only for mutable objects'''
      
     func.__mutating__ = True
+    
     return func
 
     
