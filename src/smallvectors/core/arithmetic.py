@@ -4,7 +4,7 @@ Abstract arithmetic operations
 
 from numbers import Number
 from generic import promote_type
-from generic.operator import add, add_safe, sub_safe, mul_safe, truediv_safe
+from generic.operator import add, sub, mul, truediv
 from .smallvectorsbase import ABC, SmallVectorsBase
 
 
@@ -13,28 +13,16 @@ class AddElementWise(ABC):
 
     def __add__(self, other):
         return (
-            _check_vector(self, other, add_safe) or 
+            _check_vector(self, other, add) or 
             _from_data(self, [x + y for (x, y) in zip(self.flat, other.flat)])
-        )
-
-    def __radd__(self, other):
-        return (
-            _check_vector(self, other, radd_safe) or 
-            _from_data(self, [y + x for (x, y) in zip(self.flat, other.flat)])
         )
 
     def __sub__(self, other):
         return (
-            _check_vector(self, other, sub_safe) or 
+            _check_vector(self, other, sub) or 
             _from_data(self, [x - y for (x, y) in zip(self.flat, other.flat)])
         )
     
-    def __rsub__(self, other):
-        return (
-            _check_vector(self, other, rsub_safe) or 
-            _from_data(self, [y - x for (x, y) in zip(self.flat, other.flat)])
-        )
-
 
 class MulElementWise(ABC):
     '''Implements elementwise multiplication and division'''
@@ -45,21 +33,16 @@ class MulScalar(ABC):
 
     def __mul__(self, other):
         return (
-            _check_scalar(self, other, mul_safe) or 
+            _check_scalar(self, other, mul) or 
             _from_data(self, [x * other for x in self.flat])
-        )
-        
-    def __rmul__(self, other):
-        return (
-            _check_scalar(self, other, rmul_safe) or 
-            _from_data(self, [other * x for x in self.flat])
         )
         
     def __truediv__(self, other):
         return (
-            _check_scalar(self, other, truediv_safe) or 
+            _check_scalar(self, other, truediv) or 
             _from_data(self, [x / other for x in self.flat])
-        )    
+        )
+            
     
 class AddScalar(ABC):
     '''Implements scalar addition and subtraction'''
@@ -99,18 +82,6 @@ def _from_data(obj, data):
         dtype = type(data[0])
         cls = obj.__origin__[obj.shape + (dtype,)]
         return cls.fromflat(data, copy=False)
-
-#
-# Arithmetic function overloads
-#
-def radd_safe(x, y):
-    return add_safe(y, x)
-
-def rsub_safe(x, y):
-    return sub_safe(y, x)
-
-def rmul_safe(x, y):
-    return mul_safe(y, x)
 
 
 @add.overload([SmallVectorsBase, SmallVectorsBase])

@@ -1,5 +1,5 @@
 import unittest
-from generic.tests.test_parametric import ParametricTestCase
+from generic.parametric.test_parametric import ParametricTestCase
 from smallvectors import Vec, VecAny, SmallVectorsBase, SmallVectorsMeta
 
 

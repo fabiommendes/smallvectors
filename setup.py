@@ -24,6 +24,24 @@ with open(path, 'w') as F:
 PYSRC = 'src' if sys.version.startswith('3') else 'py2src'
 
 #
+# Cython stuff (for the future)
+#
+setup_kwds = {}
+if 'PyPy' not in sys.version:
+    try:
+        from Cython.Build import cythonize
+        from Cython.Distutils import build_ext
+    except ImportError:
+        warnings.warn('Please install Cython to compile faster versions of FGAme modules')
+    else:
+        try:
+            setup_kwds.update(
+                ext_modules=cythonize('src/generic/*.pyx'),
+                cmdclass={'build_ext': build_ext})
+        except ValueError:
+            pass
+
+#
 # Main configuration script
 #
 setup(
@@ -48,4 +66,5 @@ setup(
     packages=setuptools.find_packages(PYSRC),
     license='GPL',
     install_requires=['six', 'pygeneric>=0.1.1'],
+    **setup_kwds,
 )

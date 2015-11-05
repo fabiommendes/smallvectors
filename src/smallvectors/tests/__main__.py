@@ -25,4 +25,6 @@ def load_tests(loader, tests, ignore):
 
     return tests
 
-main()
+from pytest import main
+main('-q')
+#main()

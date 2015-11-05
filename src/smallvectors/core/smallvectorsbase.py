@@ -5,6 +5,7 @@ from numbers import Number
 from generic import convert, promote_type
 from generic.parametric import ParametricMeta, ABC, Immutable, Mutable, Any
 from ..tools import lazy, dtype as _dtype, shape as _shape
+from generic.operator import Object
 
 
 __all__ = [
@@ -302,7 +303,7 @@ class SmallVectorsMeta(ParametricMeta):
     '''Metaclass for smallvector types'''
 
 
-class SmallVectorsBase(Mathematical, Serializable, Sequentiable, 
+class SmallVectorsBase(Mathematical, Serializable, Sequentiable, Object, 
                        metaclass=SmallVectorsMeta):
     '''
     Base class for all smallvectors types.
