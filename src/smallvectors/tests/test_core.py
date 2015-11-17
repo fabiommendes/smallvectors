@@ -1,14 +1,15 @@
-import unittest
+import pytest
 from smallvectors.tools import shape, commonbase
 
-class CoreTests(unittest.TestCase):
-    def test_shape(self):
-        self.assertEqual(shape([[1, 2], [3, 4], [5, 6]]), (3, 2))
-        
-    def test_commonbase(self):
-        self.assertEqual(commonbase(int, int), int)
-        self.assertEqual(commonbase(int, int, int), int)
-        
+
+def test_shape_function():
+    assert shape([[1, 2], [3, 4], [5, 6]]) == (3, 2)
+
+
+def test_commonbase_function():
+    assert commonbase(int, int) == int
+    assert commonbase(int, int, int) == int
+
 
 if __name__ == '__main__':
-    unittest.main()
+    pytest.main('test_core.py -q')

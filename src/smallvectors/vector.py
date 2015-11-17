@@ -8,7 +8,7 @@ Vectors
 import operator
 from generic import promote, set_promotion, set_conversion, get_conversion, convert
 from generic.errors import InexactError
-from generic.operator import add, sub
+from generic.op import add, sub
 from .tools import dtype as _dtype
 from .core import FlatView
 from .core import Immutable, Mutable, Normed, AddElementWise, MulScalar
@@ -185,8 +185,12 @@ class VecAny(SmallVectorsBase, Normed, AddElementWise, MulScalar):
         direction = self.to_direction(direction)
         return self.dot(direction) * direction
 
-    def clampped(self, min_length, max_length):
+    def clampped(self, min_length, max_length=None):
         '''Returns a new vector in which min_length <= abs(out) <= max_length.'''
+
+        if max_length is None:
+            ratio = min_length / self.norm()
+            return self * ratio
 
         norm = new_norm = self.norm()
         if norm > max_length:
@@ -263,6 +267,15 @@ class VecND:
     def __flatiter__(self):
         return iter(self)
 
+    def __flatlen__(self):
+        return len(self)
+    
+    def __flatgetitem__(self, idx):
+        return self[idx]
+    
+    def __flatsetitem__(self, idx, value):
+        self[idx] = value
+
 
 class Vec0D(VecND):
     '''
@@ -279,6 +292,9 @@ class Vec0D(VecND):
 
     def __iter__(self):
         return iter(())
+    
+    def __getitem__(self, idx):
+        raise IndexError(idx)
 
 
 class Vec1D(VecND):
@@ -295,6 +311,11 @@ class Vec1D(VecND):
 
     def __iter__(self):
         yield self._x
+        
+    def __getitem__(self, idx):
+        if idx == 0:
+            return self._x
+        return super().__getitem__(idx)
     
     @property
     def x(self):
@@ -326,11 +347,18 @@ class Vec2D(VecND):
     def __iter__(self):
         yield self._x
         yield self._y
+        
+    def __getitem__(self, idx):
+        if idx == 0:
+            return self._x
+        elif idx == 1:
+            return self._y
+        return super().__getitem__(idx)
 
-    def __add_similar__(self, other):
+    def __addsame__(self, other):
         return self._fromcoords_unsafe(self._x + other._x, self._y + other._y)
 
-    def __sub_similar__(self, other):
+    def __subsame__(self, other):
         return self._fromcoords_unsafe(self._x - other._x, self._y - other._y)
 
     def __mul__(self, other):
@@ -520,6 +548,15 @@ class Vec3D(VecND):
         yield self._x
         yield self._y
         yield self._z
+        
+    def __getitem__(self, idx):
+        if idx == 0:
+            return self._x
+        elif idx == 1:
+            return self._y
+        elif idx == 2:
+            return self._z
+        raise IndexError(idx)
 
     @classmethod
     def fromflat(cls, data, copy=True):
@@ -593,6 +630,17 @@ class Vec4D(VecND):
         yield self._y
         yield self._z
         yield self._w
+
+    def __getitem__(self, idx):
+        if idx == 0:
+            return self._x
+        elif idx == 1:
+            return self._y
+        elif idx == 2:
+            return self._z
+        elif idx == 3:
+            return self._w
+        raise IndexError(idx)
 
     @classmethod
     def fromflat(cls, data, copy=True):
@@ -718,8 +766,8 @@ for T in [Vec, mVec]:
     set_conversion(list, T, T)
 
 
-@set_promotion(Vec, tuple, symmetric=True)
-@set_promotion(Vec, list, symmetric=True)
+@set_promotion(Vec, tuple, symmetric=True, restype=Vec)
+@set_promotion(Vec, list, symmetric=True, restype=Vec)
 def promote(u, v):
     return u, u.__origin__.from_seq(v)
 

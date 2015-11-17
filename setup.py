@@ -14,6 +14,7 @@ with open(os.path.join(BASE, 'VERSION')) as F:
 path = os.path.join(BASE, 'src', 'smallvectors', 'meta.py')
 with open(path, 'w') as F:
     F.write(
+        '# -*- coding: utf8 -*-\n'
         '# Auto-generated file. Please do not edit\n'
         '__version__ = %r\n' % VERSION +
         '__author__ = %r\n' % AUTHOR)
@@ -32,6 +33,7 @@ if 'PyPy' not in sys.version:
         from Cython.Build import cythonize
         from Cython.Distutils import build_ext
     except ImportError:
+        import warnings
         warnings.warn('Please install Cython to compile faster versions of FGAme modules')
     else:
         try:
@@ -65,6 +67,7 @@ setup(
     package_dir={'': PYSRC},
     packages=setuptools.find_packages(PYSRC),
     license='GPL',
-    install_requires=['six', 'pygeneric>=0.1.1'],
-    **setup_kwds,
+    install_requires=['six', 'pygeneric'],
+    zip_safe=False, # Is it me, or zipped eggs are just buggy?
+    **setup_kwds
 )

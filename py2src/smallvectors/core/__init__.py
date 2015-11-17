@@ -1,4 +1,4 @@
-from .flatobject import *
-from .decorators import *
-from .util import *
-from .metatypes import *
+# -*- coding: utf8 -*-
+from .smallvectorsbase import *
+from .implementations import *
+from .arithmetic import *

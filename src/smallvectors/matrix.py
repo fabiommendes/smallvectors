@@ -57,14 +57,14 @@ determinante, etc
 >>> (matrix * matrix.inv()).eigenvalues()
 [1.0, 1.0]
 '''
-
+import six
 from generic import overload, promote_type, convert
-from generic.operator import mul
+from generic.op import mul
 from smallvectors.tools import flatten, dtype as _dtype
 from smallvectors.core import SmallVectorsBase, Immutable, Mutable, AddElementWise
 from smallvectors.core import FlatView
-
 from smallvectors import Vec, asvector
+
 
 __all__ = [
     # Types
@@ -525,13 +525,13 @@ class MatAny(SmallVectorsBase, AddElementWise):
 
     def __div__(self, other):
         if isinstance(other, number):
-            return self._from_flat(x / other for x in self.flat)
+            return self.fromflat(x / other for x in self.flat)
         else:
             return NotImplemented
 
     def __truediv__(self, other):
         if isinstance(other, number):
-            return self._from_flat(x / other for x in self.flat)
+            return self.fromflat(x / other for x in self.flat)
         else:
             return NotImplemented
 
@@ -778,7 +778,11 @@ class Mat2x2(Square):
             new._c = convert(c, dtype)
             new._d = convert(d, dtype)
             return new
-        return super().fromflat(data, copy=copy, dtype=dtype)
+        
+        if six.PY2:
+            return MatAny.fromflat(data, copy=copy, dtype=dtype)
+        else:
+            return super().fromflat(data, copy=copy, dtype=dtype)
     
     @property
     def flat(self):

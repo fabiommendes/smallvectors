@@ -1,5 +1,4 @@
 # -*- coding: utf8 -*-
-
 from __future__ import division
 from collections import MutableSequence
 from smallvectors.array import Array
@@ -27,7 +26,7 @@ class VecArray(MutableSequence):
         Sob muitos aspectos, um VecArray funciona como uma lista de vetores
 
         >>> a[0], a[1]
-        (Vec[2, int](0, 0), Vec[2, int](1, 0))
+        (Vec(0, 0), Vec(1, 0))
 
         As operações matemáticas ocorrem termo a termo
 
@@ -40,8 +39,12 @@ class VecArray(MutableSequence):
         >>> a.norm()
         Array([0, 1, 1])
         '''
-
-        self._data = list(asvector(x) for x in data)
+        data = iter(data)
+        L = self._data = [asvector(next(data))]
+        for u in data:
+            v = asvector(u)
+            assert v.__class__ is L[-1].__class__
+            L.append(v)
 
     @classmethod
     def _new(cls, data):
@@ -63,10 +66,10 @@ class VecArray(MutableSequence):
 
         return Array([u.norm_sqr() for u in self._data])
 
-    def normalize(self):
+    def normalized(self):
         '''Retorna um vetor unitário'''
 
-        return VecArray([u.normalize() for u in self._data])
+        return VecArray([u.normalized() for u in self._data])
 
     def rotate(self, theta, axis=None):
         '''Retorna um vetor rotacionado por um ângulo theta'''
@@ -139,6 +142,13 @@ class VecArray(MutableSequence):
 
         other = asvector(other)
         return self._new([u + other for u in self._data])
+    
+    def __iadd__(self, other):
+        '''x.__add__(y) <==> x + y'''
+
+        other = asvector(other)
+        self._data[:] = [u + other for u in self._data]
+        return self
 
     def __radd__(self, other):
         '''x.__radd__(y) <==> y + x'''
@@ -156,6 +166,13 @@ class VecArray(MutableSequence):
 
         other = asvector(other)
         return self._new(other - u for u in self._data)
+    
+    def __isub__(self, other):
+        '''x.__add__(y) <==> x + y'''
+
+        other = asvector(other)
+        self._data[:] = [u - other for u in self._data]
+        return self
 
     def __neg__(self):
         '''x.__neg() <==> -x'''

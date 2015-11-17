@@ -1,3 +1,4 @@
+# -*- coding: utf8 -*-
 '''
 Loads all tests in package and run
 '''
@@ -12,7 +13,6 @@ except ImportError:
 import doctest
 import sys
 
-
 def load_tests(loader, tests, ignore):
     prefix = mod_current.__name__
 
@@ -26,4 +26,6 @@ def load_tests(loader, tests, ignore):
 
     return tests
 
-main()
+from pytest import main
+main('-q')
+#main()

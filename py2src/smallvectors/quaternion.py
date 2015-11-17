@@ -4,7 +4,7 @@ Quaternion algebra and rotations
 '''
 
 from __future__ import division
-from smallvectors import Vec3, normalize
+from smallvectors import Vec3, normalized
 import math as m
 
 
@@ -26,7 +26,7 @@ class Quaternion(object):
     def from_rotation(cls, theta, axis):
         '''Create a rotation quaternion from angle and rotation axis'''
 
-        return Quaternion(m.cos(theta / 2), m.sin(theta / 2) * normalize(axis))
+        return Quaternion(m.cos(theta / 2), m.sin(theta / 2) * normalized(axis))
 
     #
     # Special operations
@@ -54,7 +54,7 @@ class Quaternion(object):
 
         return self.scalar ** 2 + self.vector.norm_sqr()
 
-    def normalize(self):
+    def normalized(self):
         '''Return the normalized quaternion'''
 
         Z = self.norm_sqr()
@@ -71,7 +71,7 @@ class Quaternion(object):
 
         from mathtools import Mat3
 
-        s, (x, y, z) = self.normalize()
+        s, (x, y, z) = self.normalized()
 
         xx = 2 * x * x
         yy = 2 * y * y
@@ -92,8 +92,8 @@ class Quaternion(object):
         '''Return a tuple of (theta, axis) equivalent to the quaternion
         rotation'''
 
-        q = self.normalize()
-        return (m.acos(q.scalar), q.vector.normalize())
+        q = self.normalized()
+        return (m.acos(q.scalar), q.vector.normalized())
 
     #
     # Magic methods

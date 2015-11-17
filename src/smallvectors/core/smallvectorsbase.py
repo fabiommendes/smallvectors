@@ -4,8 +4,9 @@ import collections
 from numbers import Number
 from generic import convert, promote_type
 from generic.parametric import ParametricMeta, ABC, Immutable, Mutable, Any
+from generic.op import Object
+from generic.util import tname
 from ..tools import lazy, dtype as _dtype, shape as _shape
-from generic.operator import Object
 
 
 __all__ = [
@@ -195,11 +196,10 @@ class Mathematical(ABC):
 class Serializable(ABC):
     '''Base class for all objects that have a .flat attribute'''
 
+    _nullvalue = 0
+    
     def __neg__(self):
         return self.fromflat([-x for x in self], copy=False)
-    
-    def __nonzero__(self):
-        return bool(self.size)
     
     @classmethod
     def fromflat(cls, data, copy=True, dtype=None):
@@ -207,7 +207,14 @@ class Serializable(ABC):
         
         If copy=False, it tries to recycle the flattened data whenever 
         possible. The caller is responsible for not sharing this data 
-        with other mutable objects.'''
+        with other mutable objects.
+        
+        Note
+        ----
+        
+        For subclass implementers: this function only normalizes an iterable 
+        data for final consumption.
+        '''
         
         if cls.__concrete__:
             if dtype is None or dtype is cls.dtype:
@@ -229,25 +236,48 @@ class Serializable(ABC):
     def null(cls, shape=None):
         '''Return an object in which all components are zero'''
 
-        if cls._null_value is not None:
-            null = cls._null_value
-        else:
-            null = convert(0, cls.dtype)
+        null = convert(cls._nullvalue, cls.dtype)
         return cls.fromflat([null] * cls.size, shape=shape)
-    
+
+    def is_null(self):
+        '''Checks if object has only null components'''
+
+        null = self._nullvalue
+        return all(x == null for x in self.flat)
+
     @lazy
     def flat(self):
         return FlatView(self)
     
-    def is_null(self):
-        '''Checks if object has only null components'''
-
-        return all(x == 0.0 for x in self.flat)
-    
     @property
-    def _flat(self):
+    def _flatclass(self):
         return Flat if isinstance(self, Immutable) else mFlat
-
+    
+    #@abc.abstractclassmethod
+    def __flatiter__(self):
+        raise NotImplementedError(
+            '%s objects does not implement a __flatiter__ method' % tname(self)
+        ) 
+    
+    def __flatlen__(self):
+        raise NotImplementedError(
+            '%s objects does not implement a __flatlen__ method' % tname(self)
+        ) 
+    
+    def __flatgetitem__(self, idx):
+        raise NotImplementedError(
+            '%s objects does not implement a __flatgetitem__ method;\n'
+            'This function only requires positive scalar indexing to work.'
+             % tname(self)
+        )
+    
+    def __flatsetitem__(self, idx, value):
+        raise NotImplementedError(
+            '%s objects does not implement a __flatsetitem__ method;\n'
+            'This function only requires positive scalar indexing to work.'
+             % tname(self)
+        )
+    
     
 class Sequentiable(ABC):
     '''Base class for all objects that can be iterated'''
@@ -258,9 +288,9 @@ class Sequentiable(ABC):
 
         dtype = self.dtype
         if dtype is None:
-            self.flat = self._flat(args)
+            self.flat = self._flatclass(args)
         else:
-            self.flat = self._flat([convert(x, dtype) for x in args], False)
+            self.flat = self._flatclass([convert(x, dtype) for x in args], False)
             
     def __str__(self):
         name = type(self).__name__
@@ -271,15 +301,26 @@ class Sequentiable(ABC):
         name = type(self).__origin__.__name__
         data = ', '.join(map(repr, self))
         return '%s(%s)' % (name, data)
-
-    def __len__(self):
-        return len(self.flat)
-
-    def __iter__(self):
-        return iter(self.flat)
-
-    def __getitem__(self, idx):
-        return self.flat[idx]
+    
+    def __getitem__(self, key):
+        N = len(self)
+        
+        if isinstance(key, int):
+            if key > N:
+                raise IndexError(key)
+            elif key >= 0:
+                for i, x in zip(self, range(N)):
+                    if i == key:
+                        return x
+                raise IndexError(key)
+            elif key < 0:
+                return self[N + key]
+        
+        elif isinstance(key, slice):
+            return [self[i] for i in range(*slice)]
+        
+        else:
+            raise TypeError('invalid index: %r' % key)
 
     def __eq__(self, other):
         if self.shape != _shape(other):
@@ -291,6 +332,12 @@ class Sequentiable(ABC):
             return all(x == y for (x, y) in zip(self.flat, other.flat))
         else:
             return all(x == y for (x, y) in zip(self, other))
+        
+    def __nonzero__(self):
+        return bool(self.size)
+
+    def __bool__(self):
+        return bool(self.size)
 
     @classmethod
     def fromdata(cls, data):
@@ -380,6 +427,8 @@ class SmallVectorsBase(Mathematical, Serializable, Sequentiable, Object,
 # Override Mutable and Immutable base classes
 #
 def get_sibling_classes(cls):
+    '''Helper function for finding the Mutable/Immutable pair of classes.'''
+    
     parent = cls.mro()[1]
     mod = sys.modules[cls.__module__]
     names = (x for x in dir(mod) if not x.startswith('_'))
@@ -406,7 +455,7 @@ class Mutable(Mutable):
             siblings = get_sibling_classes(type(self))
             immutable = [T for T in siblings if issubclass(T, Immutable)]
             assert len(immutable) == 1
-            cls = immutable[0]
+            cls = type(self)._immutable_ = immutable[0]
         return cls(*self)
     
     
@@ -422,7 +471,7 @@ class Immutable(Immutable):
             siblings = get_sibling_classes(type(self))
             mutable = [T for T in siblings if issubclass(T, Mutable)]
             assert len(mutable) == 1
-            cls = mutable[0]
+            cls = type(self)._mutable_ = mutable[0]
         return cls(*self)
     
     def immutable(self):

@@ -1,3 +1,4 @@
+# -*- coding: utf8 -*-
 class seq(object):
 
     '''seq objects describe a range of numbers that can be iterated lazyly.
