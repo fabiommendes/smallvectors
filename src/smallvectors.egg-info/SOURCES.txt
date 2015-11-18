@@ -4,7 +4,6 @@ README.rst
 README.txt
 VERSION
 setup.py
-py2src/.gitignore
 py2src/smallvectors/__init__.py
 py2src/smallvectors/affine.py
 py2src/smallvectors/arithmetic.py
@@ -27,8 +26,8 @@ py2src/smallvectors/extra/__init__.py
 py2src/smallvectors/extra/util.py
 py2src/smallvectors/tests/__init__.py
 py2src/smallvectors/tests/__main__.py
-py2src/smallvectors/tests/base.py
 py2src/smallvectors/tests/test_affine.py
+py2src/smallvectors/tests/test_arithmetic.py
 py2src/smallvectors/tests/test_core.py
 py2src/smallvectors/tests/test_flatobject.py
 py2src/smallvectors/tests/test_matrix.py
@@ -37,7 +36,6 @@ py2src/smallvectors/tests/test_tools.py
 py2src/smallvectors/tests/test_vector.py
 src/smallvectors/__init__.py
 src/smallvectors/affine.py
-src/smallvectors/arithmetic.py
 src/smallvectors/array.py
 src/smallvectors/direction.py
 src/smallvectors/matrix.py
@@ -53,7 +51,6 @@ src/smallvectors.egg-info/PKG-INFO
 src/smallvectors.egg-info/SOURCES.txt
 src/smallvectors.egg-info/dependency_links.txt
 src/smallvectors.egg-info/not-zip-safe
-src/smallvectors.egg-info/pbr.json
 src/smallvectors.egg-info/requires.txt
 src/smallvectors.egg-info/top_level.txt
 src/smallvectors/core/__init__.py
@@ -64,8 +61,8 @@ src/smallvectors/extra/__init__.py
 src/smallvectors/extra/util.py
 src/smallvectors/tests/__init__.py
 src/smallvectors/tests/__main__.py
-src/smallvectors/tests/base.py
 src/smallvectors/tests/test_affine.py
+src/smallvectors/tests/test_arithmetic.py
 src/smallvectors/tests/test_core.py
 src/smallvectors/tests/test_flatobject.py
 src/smallvectors/tests/test_matrix.py

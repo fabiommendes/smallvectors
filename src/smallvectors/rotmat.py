@@ -1,17 +1,18 @@
 import numbers
 from smallvectors.matrix import Mat
 
+
 class Unitary(Mat):
 
-    '''Base class for all unitary matrices (e.g., rotation matrices).
+    """Base class for all unitary matrices (e.g., rotation matrices).
     
     The conjugate of an unitary matrix is equal to its inverse. Unitary matrices
     are immutable since almost any modification to the matrix would break 
-    unitarity. 
-    '''
+    unitarity. """
 
     __slots__ = ()
-    
+
+
     @classmethod
     def __preprarebases__(cls, params):
         N, M, dtype = params
@@ -30,7 +31,7 @@ class Unitary(Mat):
 
 class Rotation2d(Unitary[2, 2, float]):
 
-    '''Rotation matrix in 2D'''
+    """Rotation matrix in 2D"""
 
     __slots__ = ('theta',)
 
@@ -45,11 +46,8 @@ class Rotation2d(Unitary[2, 2, float]):
 
 
 class Rotation3d(Unitary[3, 3, float]):
+    """Rotation matrix in 3D"""
 
-    '''
-        Cria uma matriz de rotação que realiza a rotação pelo ângulo theta
-        especificado
-    '''
     __slots__ = ('theta',)
 
     def __init__(self, theta, axis):

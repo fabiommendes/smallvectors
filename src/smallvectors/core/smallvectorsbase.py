@@ -21,8 +21,8 @@ __all__ = [
 # Utility functions
 #
 def _default_smallvectors_type_ns(params):
-    '''Compute a dict with shape, ndim, dtype and size attributes computed from 
-    the given parameters'''
+    """Compute a dict with shape, ndim, dtype and size attributes computed from 
+    the given parameters"""
     
     ns = {}
     if params is None:
@@ -56,8 +56,8 @@ def _default_smallvectors_type_ns(params):
 #
 class Flat(collections.Sequence):
 
-    '''A immutable list-like object that holds a flattened data of a 
-    smallvectors object.'''
+    """A immutable list-like object that holds a flattened data of a 
+    smallvectors object."""
 
     __slots__ = ('_data',)
 
@@ -82,7 +82,7 @@ class Flat(collections.Sequence):
 
 class mFlat(Flat):
 
-    '''A mutable Flat object.'''
+    """A mutable Flat object."""
 
     __slots__ = ()
 
@@ -92,11 +92,11 @@ class mFlat(Flat):
 
 class FlatView(collections.Sequence):
 
-    '''A flat facade to some arbitrary sequence-like object.
+    """A flat facade to some arbitrary sequence-like object.
 
     It accepts two functions: flat_index and owner_index that maps indexes from
     owner to flat and from flat to owner respectivelly. An explicit size can
-    also be given.'''
+    also be given."""
 
     __slots__ = ('owner',)
 
@@ -173,11 +173,11 @@ class FlatView(collections.Sequence):
 # Base classes
 #
 class Mathematical(ABC):
-    '''Defines a set of overridable mathematical functions as private methods.
+    """Defines a set of overridable mathematical functions as private methods.
     
     Class implementors should use these methods instead of functions in the 
     math module so subclasses can reuse implementations with their own math
-    functions (maybe using numpy, simpy, etc).'''
+    functions (maybe using numpy, simpy, etc)."""
      
     # Mathematical functions
     _sqrt = math.sqrt
@@ -194,7 +194,7 @@ class Mathematical(ABC):
 
 
 class Serializable(ABC):
-    '''Base class for all objects that have a .flat attribute'''
+    """Base class for all objects that have a .flat attribute"""
 
     _nullvalue = 0
     
@@ -203,7 +203,7 @@ class Serializable(ABC):
     
     @classmethod
     def fromflat(cls, data, copy=True, dtype=None):
-        '''Initializes object from flattened data.
+        """Initializes object from flattened data.
         
         If copy=False, it tries to recycle the flattened data whenever 
         possible. The caller is responsible for not sharing this data 
@@ -214,7 +214,7 @@ class Serializable(ABC):
         
         For subclass implementers: this function only normalizes an iterable 
         data for final consumption.
-        '''
+        """
         
         if cls.__concrete__:
             if dtype is None or dtype is cls.dtype:
@@ -234,13 +234,13 @@ class Serializable(ABC):
     
     @classmethod
     def null(cls, shape=None):
-        '''Return an object in which all components are zero'''
+        """Return an object in which all components are zero"""
 
         null = convert(cls._nullvalue, cls.dtype)
         return cls.fromflat([null] * cls.size, shape=shape)
 
     def is_null(self):
-        '''Checks if object has only null components'''
+        """Checks if object has only null components"""
 
         null = self._nullvalue
         return all(x == null for x in self.flat)
@@ -280,11 +280,12 @@ class Serializable(ABC):
     
     
 class Sequentiable(ABC):
-    '''Base class for all objects that can be iterated'''
+
+    """Base class for all objects that can be iterated"""
     
     def __init__(self, *args):
-        '''Directly called upon instantiation of concrete subtypes. (e.g.: at
-        Vec[2, float](1, 2) rather than Vec(1, 2)).'''
+        """Directly called upon instantiation of concrete subtypes. (e.g.: at
+        Vec[2, float](1, 2) rather than Vec(1, 2))."""
 
         dtype = self.dtype
         if dtype is None:
@@ -303,24 +304,27 @@ class Sequentiable(ABC):
         return '%s(%s)' % (name, data)
     
     def __getitem__(self, key):
-        N = len(self)
+        size = len(self)
         
         if isinstance(key, int):
-            if key > N:
+            if key > size or key < -size:
                 raise IndexError(key)
             elif key >= 0:
-                for i, x in zip(self, range(N)):
-                    if i == key:
-                        return x
-                raise IndexError(key)
+                return self.__getitem_simple__(key)
             elif key < 0:
-                return self[N + key]
+                return self[size + key]
         
         elif isinstance(key, slice):
             return [self[i] for i in range(*slice)]
         
         else:
             raise TypeError('invalid index: %r' % key)
+
+    def __getitem_simple__(self, key):
+        for i, x in zip(self, range(len(self))):
+            if i == key:
+                return x
+        raise IndexError(key)
 
     def __eq__(self, other):
         if self.shape != _shape(other):
@@ -341,25 +345,26 @@ class Sequentiable(ABC):
 
     @classmethod
     def fromdata(cls, data):
-        '''Initializes from a sequence of values'''
+        """Initializes from a sequence of values"""
 
         return cls(*data)
 
     
 class SmallVectorsMeta(ParametricMeta):
-    '''Metaclass for smallvector types'''
+    """Metaclass for smallvector types"""
 
 
-class SmallVectorsBase(Mathematical, Serializable, Sequentiable, Object, 
+class SmallVectorsBase(Mathematical, Serializable, Sequentiable, Object,
                        metaclass=SmallVectorsMeta):
-    '''
+    """
     Base class for all smallvectors types.
     
     It computes the shape, size, ndim and dtype attributes from the type 
     __parameters__. It assumes that __parameters__ are always a sequence of 
     integers following by a trailing type. These integers represent the shape
     and the trailing type is the type for the scalar values.
-    '''
+    """
+
     __abstract__ = True
     __parameters__ = None
     __slots__ = ()
@@ -372,14 +377,14 @@ class SmallVectorsBase(Mathematical, Serializable, Sequentiable, Object,
 
     @classmethod
     def __preparenamespace__(cls, params):
-        '''Create shape, size, dim, dtype'''
+        """Create shape, size, dim, dtype"""
         
         return _default_smallvectors_type_ns(params)
         
     @staticmethod
     def __finalizetype__(cls):
-        '''Assure that the resulting type has the correct shape, size, dim, 
-        dtype'''
+        """Assure that the resulting type has the correct shape, size, dim, 
+        dtype"""
         
         # Shape parameters
         if cls.__parameters__ is None or cls.shape is None:
@@ -400,10 +405,10 @@ class SmallVectorsBase(Mathematical, Serializable, Sequentiable, Object,
 
     @classmethod
     def __abstract_new__(cls, *args, shape=None, dtype=None):  # @NoSelf
-        '''
+        """
         This function is called when user tries to instatiate an abstract
         type. It just finds the proper concrete type and instantiate it.
-        '''
+        """
         if dtype is None:
             dtype = _dtype(args)
         if shape is None:
@@ -414,7 +419,7 @@ class SmallVectorsBase(Mathematical, Serializable, Sequentiable, Object,
         return self.size
 
     def convert(self, dtype):
-        '''Convert object to the given data type'''
+        """Convert object to the given data type"""
 
         cls = type(self)
         if dtype is self.dtype:
@@ -427,7 +432,7 @@ class SmallVectorsBase(Mathematical, Serializable, Sequentiable, Object,
 # Override Mutable and Immutable base classes
 #
 def get_sibling_classes(cls):
-    '''Helper function for finding the Mutable/Immutable pair of classes.'''
+    """Helper function for finding the Mutable/Immutable pair of classes."""
     
     parent = cls.mro()[1]
     mod = sys.modules[cls.__module__]
@@ -439,15 +444,16 @@ def get_sibling_classes(cls):
     
     
 class Mutable(Mutable):
-    '''Base class for all mutable types'''
+
+    """Base class for all mutable types"""
     
     def mutable(self):
-        '''Return a mutable copy of object'''
+        """Return a mutable copy of object"""
         
         return self.copy()
     
     def immutable(self):
-        '''Return an immutable copy of object'''
+        """Return an immutable copy of object"""
         
         try:
             cls = self._immutable_
@@ -460,10 +466,11 @@ class Mutable(Mutable):
     
     
 class Immutable(Immutable):
-    '''Base class for all immutable types'''
+
+    """Base class for all immutable types"""
     
     def mutable(self):
-        '''Return a mutable copy of object'''
+        """Return a mutable copy of object"""
         
         try:
             cls = self._mutable_
@@ -475,6 +482,10 @@ class Immutable(Immutable):
         return cls(*self)
     
     def immutable(self):
-        '''Return an immutable copy of object'''
+        """Return an immutable copy of object"""
         
         return self
+
+
+# Some simple checks...
+assert isinstance(SmallVectorsBase, SmallVectorsMeta)

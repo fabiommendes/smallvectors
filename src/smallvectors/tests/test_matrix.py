@@ -6,17 +6,19 @@ from smallvectors.tests.test_arithmetic import *
 #
 # Arithmetic tests
 #
+Mat2 = Mat[2, 2, int]
 make_arithmetic_fixtures(
-    x=Mat([1, 2], [3, 4]),
-    y=Mat([3, 4], [1, 2]),
-    zero=Mat([0, 0], [0, 0]),
-    add=Mat([4, 6], [4, 6]),
-    sub=Mat([-2, -2], [2, 2]),
-    rsub=Mat([2, 2], [-2, -2]),
-    mul=Mat([5, 8], [13, 20]),
-    rmul=Mat([15, 22], [7, 10]),
-    smul=Mat([2, 4], [6, 8]),
+    x=Mat2([1, 2], [3, 4]),
+    y=Mat2([3, 4], [1, 2]),
+    zero=Mat2([0, 0], [0, 0]),
+    add=Mat2([4, 6], [4, 6]),
+    sub=Mat2([-2, -2], [2, 2]),
+    rsub=Mat2([2, 2], [-2, -2]),
+    mul=Mat2([5, 8], [13, 20]),
+    rmul=Mat2([15, 22], [7, 10]),
+    smul=Mat2([2, 4], [6, 8]),
     scalar_add=False,
+    ns=globals(),
 )
 
 

@@ -5,8 +5,6 @@ and test them on int's to validate.
 Other types may reuse many of these functions by importing from this module.
 """
 import pytest
-import functools
-import inspect
 
 
 def make_arithmetic_fixtures(
@@ -19,6 +17,7 @@ def make_arithmetic_fixtures(
         radd=None, rsub=None, rmul=None, rdiv=None,
         sadd=None, smul=None,
         simeq=lambda x, y: abs(x - y) < 1e-3,
+        ns=None,
     ):
     """Make fixtures from arguments and insert them in module's namespace"""
 
@@ -29,22 +28,23 @@ def make_arithmetic_fixtures(
     kwds = locals()
 
     # Create fixtures
-    def echo(a):
-        return a
+    def make_echo(a):
+        def echo():
+            return a
+        return echo
 
     for k, v in kwds.items():
-        fixture = functools.partial(echo, v)
+        fixture = make_echo(v)
         fixture.__name__ = k
         kwds[k] = pytest.fixture(fixture)
-
-    ns = inspect.currentframe().f_back.f_globals
     ns.update(kwds)
 
 
 make_arithmetic_fixtures(x=1, y=2, zero=0, scalar=2.0,
               add=3, sub=-1, mul=2, div=0.5, rdiv=2,
               sadd=3.0, smul=2.0,
-              x_alts=[1.0], y_alts=[2.0])
+              x_alts=[1.0], y_alts=[2.0],
+              ns=globals())
 
 
 # Same type operations

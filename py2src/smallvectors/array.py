@@ -1,94 +1,57 @@
 # -*- coding: utf8 -*-
-
 from __future__ import division
-from collections import MutableSequence
+from collections import Sequence
+from generic import convert
+from generic.op import add, sub, mul, div
+from smallvectors import (SmallVectorsBase, Flat, dtype,
+                          AddElementWise, MulElementWise, AddScalar, MulScalar)
 
-# FIXME: old cruft
-from smallvectors.arithmetic import mAbstractArray, mArithmetic
 
 __all__ = ['Array']
 
 
-class Array(mAbstractArray, mArithmetic, MutableSequence):
+class Array(SmallVectorsBase, Sequence, AddElementWise, MulElementWise,
+            AddScalar, MulScalar):
 
-    '''Uma lista unidimensional de números que aceita operações matemáticas.
+    """Unidimensional array of uniform objects."""
 
-    Exemplos
-    --------
+    __parameters__ = [int, type]
 
-    >>> a = Array([1, 2, 3, 4])
-    >>> a
-    Array([1, 2, 3, 4])
-
-    Arrays aceitam métodos de listas
-
-    >>> a.append(5)
-    >>> a
-    Array([1, 2, 3, 4, 5])
-
-    Mas também aceitam operações matemáticas
-
-    >>> a + 1
-    Array([2, 3, 4, 5, 6])
-    >>> a + [1, 0, 1, 0, 1]
-    Array([2, 2, 4, 4, 6])
-
-    Array são objetos mutáveis, de forma que operações inplace modificam os
-    dados originais
-
-    >>> b = a
-    >>> a += 1
-    >>> b
-    Array([2, 3, 4, 5, 6])
-    '''
-
-    _out_transform = None
-    _in_transform = float
-    _scalar = (float, int)
-    _container = (list, tuple)
+    @classmethod
+    def __abstract_new__(cls, data):
+        N = len(data)
+        cls = cls[N, dtype(data)]
+        return cls.fromflat(data)
 
     def __init__(self, data):
-        self._data = list(map(float, data))
+        dtype = self.dtype
+        self.flat = Flat([convert(x, dtype) for x in data], copy=False)
 
     def __repr__(self):
-        tname = type(self).__name__
-        data = ', '.join(str(x) if x != int(x) else str(int(x)) for x in self)
-        return '%s([%s])' % (tname, data)
+        data = ', '.join(repr(x) for x in self)
+        return '%s([%s])' % (type(self).__name__, data)
 
-    def insert(self, idx, value):
-        self._insert(idx, value)
+    def __len__(self):
+        return self.size
+
+    def __iter__(self):
+        return iter(self.flat)
+
+    @classmethod
+    def fromflat(cls, data, dtype=None, copy=False):
+        if dtype is None:
+            return cls(data)
+        return super(cls.__class__, cls)(data, dtype=dtype, copy=copy)
+
 
 if __name__ == '__main__':
-    import doctest
-    doctest.testmod()
-
-    from nose import runmodule
-    from FGAme.mathutils.unittests import ArithmeticUnittest, TestCase
-
-    class ArrayTester(ArithmeticUnittest, TestCase):
-        obj_type = Array
-        str_equality = True
-
-        def names(self):
-            new = self.obj_type
-            a = new([0, 1, 2])
-            b = new([3, 4, 5])
-            m = 2
-            a_tuple = (0, 1, 2)
-            a_list = [0, 1, 2]
-
-            add_ab = new([3, 5, 7])
-            mul_ab = new([0, 4, 10])
-            sub_ab = new([-3, -3, -3])
-            sub_ba = new([3, 3, 3])
-
-            add_am = new([2, 3, 4])
-            mul_am = new([0, 2, 4])
-            div_am = new([0, 0.5, 1])
-            div_mb = new([2 / 3., 0.5, 2. / 5])
-            sub_am = new([-2, -1, 0])
-            sub_ma = new([2, 1, 0])
-
-            return locals()
-
-    runmodule('__main__')
+    A = Array([1, 2, 3, 4])
+    import pprint
+    pprint.pprint(list(add))
+    print(A)
+    print(A + A)
+    print(A * A)
+    print(A / A)
+    print(A * 2)
+    print(A + 1)
+    print(1 + A)

@@ -537,7 +537,7 @@ class MatAny(SmallVectorsBase, AddElementWise):
 
     def __floordiv__(self, other):
         if isinstance(other, number):
-            return self._from_flat(x // other for x in self.flat)
+            return self.fromflat(x // other for x in self.flat)
         else:
             return NotImplemented
 
@@ -778,12 +778,10 @@ class Mat2x2(Square):
             new._c = convert(c, dtype)
             new._d = convert(d, dtype)
             return new
-        
-        if six.PY2:
-            return MatAny.fromflat(data, copy=copy, dtype=dtype)
-        else:
-            return super().fromflat(data, copy=copy, dtype=dtype)
-    
+
+        # super() fix from 3to2 can't handle classmethods...
+        return super(Mat2x2, cls).fromflat(data, copy=copy, dtype=dtype)
+
     @property
     def flat(self):
         return FlatView(self)

@@ -1,10 +1,10 @@
-'''
+"""
 =======
 Vectors
 =======
 
 
-'''
+"""
 import operator
 from generic import promote, set_promotion, set_conversion, get_conversion, convert
 from generic.errors import InexactError
@@ -21,7 +21,7 @@ DIMENSION_BASES = {}
 
 class VecAny(SmallVectorsBase, Normed, AddElementWise, MulScalar):
 
-    '''Common implementations for Vec and Point types'''
+    """Common implementations for Vec and Point types"""
 
     __slots__ = ()
     __parameters__ = (int, type)
@@ -65,13 +65,16 @@ class VecAny(SmallVectorsBase, Normed, AddElementWise, MulScalar):
                 attr = 'xyzw'[i]
                 if not hasattr(cls, attr):
                     setattr(cls, attr, prop)
-        
+
+    def __getitem_simple__(self, idx):
+        return self.flat[idx]
+
     @classmethod
     def __abstract_new__(cls, *args, dtype=None):  # @NoSelf
-        '''
+        """
         This function is called when user tries to instatiate an abstract
         type. It just finds the proper concrete type and instantiate it.
-        '''
+        """
         if dtype is None:
             dtype = _dtype(args)
         return cls[len(args), dtype](*args)
@@ -80,22 +83,22 @@ class VecAny(SmallVectorsBase, Normed, AddElementWise, MulScalar):
     # Representation and conversions
     #
     def as_vector(self):
-        '''Returns a copy of object as a vector'''
+        """Returns a copy of object as a vector"""
 
         return self.__vector__(*self)
 
     def as_direction(self):
-        '''Returns a normalized copy of object as a direction'''
+        """Returns a normalized copy of object as a direction"""
 
         return self.__direction__(*self)
 
     def as_point(self):
-        '''Returns a copy of object as a point'''
+        """Returns a copy of object as a point"""
 
         return self.__point__(*self)
 
     def copy(self, x=None, y=None, z=None, w=None, **kwds):
-        '''Return a copy possibly overriding some components'''
+        """Return a copy possibly overriding some components"""
 
         data = list(self)
         if x is not None:
@@ -119,12 +122,12 @@ class VecAny(SmallVectorsBase, Normed, AddElementWise, MulScalar):
     # Geometric properties
     #
     def almost_equal(self, other, tol=1e-3):
-        '''Return True if two smallvectors are almost equal to each other'''
+        """Return True if two smallvectors are almost equal to each other"""
 
         return (self - other).norm_sqr() < tol * tol
 
     def distance(self, other):
-        '''Computes the distance between two objects'''
+        """Computes the distance between two objects"""
 
         if len(self) != len(other):
             N, M = len(self), len(other)
@@ -134,11 +137,11 @@ class VecAny(SmallVectorsBase, Normed, AddElementWise, MulScalar):
         return self._sqrt(sum(x * x for x in deltas))
 
     def lerp(self, other, weight):
-        '''Linear interpolation between two objects.
+        """Linear interpolation between two objects.
 
         The weight attribute defines how close the result will be from the
         argument. A weight of 0.5 corresponds to the middle point between
-        the two objects.'''
+        the two objects."""
 
         if not 0 <= weight <= 1:
             raise ValueError('weight must be between 0 and 1')
@@ -146,24 +149,24 @@ class VecAny(SmallVectorsBase, Normed, AddElementWise, MulScalar):
         return (other - self) * weight + self
 
     def middle(self, other):
-        '''The midpoint to `other`. The same as ``obj.lerp(other, 0.5)``'''
+        """The midpoint to `other`. The same as ``obj.lerp(other, 0.5)``"""
 
         return (self + other) / 2
     
     def displaced(self, *args):
-        '''Return a copy of object displaced by the given ammount.'''
+        """Return a copy of object displaced by the given ammount."""
         
         if len(args) == 1:
             args = args[0]
         return self + args
         
     def moved(self, *args):
-        '''An alias to obj.displaced()'''
+        """An alias to obj.displaced()"""
         
         return self.displaced(*args)
     
     def angle(self, other):
-        '''Angle between two vectors'''
+        """Angle between two vectors"""
 
         try:
             Z = other.norm()
@@ -175,18 +178,18 @@ class VecAny(SmallVectorsBase, Normed, AddElementWise, MulScalar):
         return self._acos(cos_t)
 
     def reflected(self, direction):
-        '''Reflect vector around the given direction'''
+        """Reflect vector around the given direction"""
 
         return self - 2 * (self - self.project(direction))
 
     def projection(self, direction):
-        '''Returns the projection vector in the given direction'''
+        """Returns the projection vector in the given direction"""
 
         direction = self.to_direction(direction)
         return self.dot(direction) * direction
 
     def clampped(self, min_length, max_length=None):
-        '''Returns a new vector in which min_length <= abs(out) <= max_length.'''
+        """Returns a new vector in which min_length <= abs(out) <= max_length."""
 
         if max_length is None:
             ratio = min_length / self.norm()
@@ -204,7 +207,7 @@ class VecAny(SmallVectorsBase, Normed, AddElementWise, MulScalar):
             return self.copy()
 
     def dot(self, other):
-        '''Dot product between two objects'''
+        """Dot product between two objects"""
 
         if len(self) != len(other):
             N, M = len(self), len(other)
@@ -212,7 +215,7 @@ class VecAny(SmallVectorsBase, Normed, AddElementWise, MulScalar):
         return sum(x * y for (x, y) in zip(self, other))
 
     def norm(self, which=None):
-        '''Returns the norm of a vector'''
+        """Returns the norm of a vector"""
 
         if which is None or which == 'euclidean':
             return self._sqrt(self.norm_sqr())
@@ -226,7 +229,7 @@ class VecAny(SmallVectorsBase, Normed, AddElementWise, MulScalar):
             super().norm(which)
 
     def norm_sqr(self, which=None):
-        '''Returns the squared norm of a vector'''
+        """Returns the squared norm of a vector"""
 
         if which is None:
             return sum(x * x for x in self)
@@ -234,7 +237,7 @@ class VecAny(SmallVectorsBase, Normed, AddElementWise, MulScalar):
             super().norm_sqr(which)
 
     def rotated(self, rotation):
-        '''Rotate vector by the given rotation object.
+        """Rotate vector by the given rotation object.
         
         The rotation can be specified in several ways which are dimension 
         dependent. All vectors can be rotated by rotation matrices in any 
@@ -242,7 +245,7 @@ class VecAny(SmallVectorsBase, Normed, AddElementWise, MulScalar):
     
         In 2D, rotation can be a simple number that specifies the 
         angle of rotation.   
-        '''
+        """
         
         if isinstance(rotation, self._rotmatrix):
             return rotation * self
@@ -256,9 +259,9 @@ class VecAny(SmallVectorsBase, Normed, AddElementWise, MulScalar):
 # Special overrides for vectors of specific dimensions
 #
 class VecND:
-    '''
+    """
     Base class with overrides for any dimension
-    '''
+    """
     
     @property
     def flat(self):
@@ -278,9 +281,9 @@ class VecND:
 
 
 class Vec0D(VecND):
-    '''
+    """
     0D Vectors (probably even less necessary than Vec1D :P)
-    '''
+    """
     
     __slots__ = ()
     
@@ -298,9 +301,9 @@ class Vec0D(VecND):
 
 
 class Vec1D(VecND):
-    '''
+    """
     1D Vectors (is this necessary?)
-    '''
+    """
     __slots__ = ('_x')
     
     def __init__(self, x):
@@ -312,11 +315,10 @@ class Vec1D(VecND):
     def __iter__(self):
         yield self._x
         
-    def __getitem__(self, idx):
-        if idx == 0:
-            return self._x
-        return super().__getitem__(idx)
-    
+    def __getitem_simple__(self, idx):
+        assert idx in (0, -1)
+        return self._x
+
     @property
     def x(self):
         return self._x
@@ -330,10 +332,10 @@ class Vec1D(VecND):
 
 
 class Vec2D(VecND):
-    '''Vector functions that only works in 2D.
+    """Vector functions that only works in 2D.
     
     These functions are inserted to all Vec[2, ...] classes upon class 
-    creation'''
+    creation"""
     
     __slots__ = ('_x', '_y')
     
@@ -348,12 +350,13 @@ class Vec2D(VecND):
         yield self._x
         yield self._y
         
-    def __getitem__(self, idx):
+    def __getitem_simple__(self, idx):
         if idx == 0:
             return self._x
         elif idx == 1:
             return self._y
-        return super().__getitem__(idx)
+        else:
+            raise RuntimeError('invalid index for getitem_simple: %s' % idx)
 
     def __addsame__(self, other):
         return self._fromcoords_unsafe(self._x + other._x, self._y + other._y)
@@ -384,7 +387,7 @@ class Vec2D(VecND):
     
     @classmethod
     def frompolar(cls, radius, theta=0):
-        '''Create vector from polar coordinates'''
+        """Create vector from polar coordinates"""
         return cls(radius * cls._cos(theta), radius * cls._sin(theta))
 
     @classmethod
@@ -413,7 +416,7 @@ class Vec2D(VecND):
     # 2D specific API
     #
     def rotated_axis(self, axis, theta):
-        '''Rotate vector around given axis by the angle theta'''
+        """Rotate vector around given axis by the angle theta"""
 
         dx, dy = self - axis
         cos_t, sin_t = self._cos(theta), self._sin(theta)
@@ -422,7 +425,7 @@ class Vec2D(VecND):
             dx * sin_t + dy * cos_t + axis[1])
 
     def rotated(self, theta):
-        '''Rotate vector by an angle theta around origin'''
+        """Rotate vector by an angle theta around origin"""
 
         if isinstance(theta, self._rotmatrix):
             return theta * self
@@ -441,22 +444,22 @@ class Vec2D(VecND):
                 return Vec(x * cos_t - y * sin_t, x * sin_t + y * cos_t)
     
     def cross(self, other):
-        '''The z component of the cross product between two bidimensional
-        smallvectors'''
+        """The z component of the cross product between two bidimensional
+        smallvectors"""
 
         x, y = other
         return self.x * y - self.y * x
     
     def polar(self):
-        '''Return a tuple with the (radius, theta) polar coordinates '''
+        """Return a tuple with the (radius, theta) polar coordinates """
 
         return (self.norm(), self._atan2(self.y, self.x))
 
     def perp(self, ccw=True):
-        '''Return the counterclockwise perpendicular vector.
+        """Return the counterclockwise perpendicular vector.
 
         If ccw is False, do the rotation in the clockwise direction.
-        '''
+        """
 
         if ccw:
             return self._fromcoords_unsafe(-self.y, self.x)
@@ -491,14 +494,14 @@ class Vec2D(VecND):
             return self.__origin__[2, dtype](x, y)
 
     def angle(self, other):
-        '''Computes the angle between two smallvectors'''
+        """Computes the angle between two smallvectors"""
 
         cos_t = self.dot(other)
         sin_t = self.cross(other)
         return self._atan2(sin_t, cos_t)
 
     def is_null(self):
-        '''Checks if vector has only null components'''
+        """Checks if vector has only null components"""
 
         if self._x == 0.0 and self._y == 0.0:
             return True
@@ -506,12 +509,12 @@ class Vec2D(VecND):
             return False
 
     def is_unity(self, tol=1e-6):
-        '''Return True if the norm equals one within the given tolerance'''
+        """Return True if the norm equals one within the given tolerance"""
 
         return abs(self._x * self._x + self._y * self._y - 1) < 2 * tol
 
     def norm(self, which=None):
-        '''Returns the norm of a vector'''
+        """Returns the norm of a vector"""
 
         if which is None:
             return self._sqrt(self._x ** 2 + self._y ** 2)
@@ -519,7 +522,7 @@ class Vec2D(VecND):
             return Vec.norm(self, which)
 
     def norm_sqr(self, which=None):
-        '''Returns the squared norm of a vector'''
+        """Returns the squared norm of a vector"""
 
         if which is None:
             return self._x ** 2 + self._y ** 2
@@ -528,10 +531,10 @@ class Vec2D(VecND):
 
 
 class Vec3D(VecND):
-    '''Vector functions that only works in 3D.
+    """Vector functions that only works in 3D.
     
     These functions are inserted to all Vec[3, ...] classes upon class 
-    creation'''
+    creation"""
     
     __slots__ = ('_x', '_y', '_z')
     
@@ -556,7 +559,8 @@ class Vec3D(VecND):
             return self._y
         elif idx == 2:
             return self._z
-        raise IndexError(idx)
+        else:
+            raise RuntimeError('invalid index for getitem_simple: %s' % idx)
 
     @classmethod
     def fromflat(cls, data, copy=True):
@@ -565,7 +569,7 @@ class Vec3D(VecND):
     
     @classmethod
     def fromspheric(cls, radius, phi=0, theta=0):
-        '''Create vector from spherical coordinates'''
+        """Create vector from spherical coordinates"""
         
         r = radius * cls._sin(phi)
         x = r * cls._cos(theta) 
@@ -575,7 +579,7 @@ class Vec3D(VecND):
 
     @classmethod
     def fromcylindric(cls, radius, theta=0, z=0):
-        '''Create vector from cylindric coordinates'''
+        """Create vector from cylindric coordinates"""
         
         x = radius * cls._cos(theta)
         y = radius * cls._sin(theta)
@@ -603,17 +607,17 @@ class Vec3D(VecND):
     x3 = z
     
     def cross(self, other):
-        '''The cross product between two tridimensional smallvectors'''
+        """The cross product between two tridimensional smallvectors"""
 
         x, y, z = self
         a, b, c = other
         return Vec(y * c - z * b, z * a - x * c, x * b - y * a)
 
 class Vec4D(VecND):
-    '''Vector functions that only works in 4D.
+    """Vector functions that only works in 4D.
     
     These functions are inserted to all Vec[4, ...] classes upon class 
-    creation'''
+    creation"""
 
     def __init__(self, x, y, z, w):
         dtype = self.dtype
@@ -640,7 +644,8 @@ class Vec4D(VecND):
             return self._z
         elif idx == 3:
             return self._w
-        raise IndexError(idx)
+        else:
+            raise RuntimeError('invalid index for getitem_simple: %s' % idx)
 
     @classmethod
     def fromflat(cls, data, copy=True):
@@ -649,7 +654,7 @@ class Vec4D(VecND):
     
     @classmethod
     def fromspheric(cls, radius, phi=0, theta=0):
-        '''Create vector from spherical coordinates'''
+        """Create vector from spherical coordinates"""
         
         r = radius * cls._sin(phi)
         x = r * cls._cos(theta) 
@@ -659,7 +664,7 @@ class Vec4D(VecND):
 
     @classmethod
     def fromcylindric(cls, radius, theta=0, z=0):
-        '''Create vector from cylindric coordinates'''
+        """Create vector from cylindric coordinates"""
         
         x = radius * cls._cos(theta)
         y = radius * cls._sin(theta)
@@ -692,31 +697,31 @@ class Vec4D(VecND):
 #
 class Vec(VecAny, Immutable):
 
-    '''Base class for all immutable vector types. Each dimension and type have
-    its own related class. '''
+    """Base class for all immutable vector types. Each dimension and type have
+    its own related class. """
 
     __slots__ = ()
 
 
 class mVec(VecAny, Mutable):
 
-    '''A mutable vector'''
+    """A mutable vector"""
 
     __slots__ = ()
 
     def rotate(self, rotation):
-        '''Similar to obj.rotate(...), but make changes *INPLACE*'''
+        """Similar to obj.rotate(...), but make changes *INPLACE*"""
         
         value = self.rotated(rotation)
         self[:] = value
         
     def move(self, *args):
-        '''Alias to obj.displace(...)'''
+        """Alias to obj.displace(...)"""
         
         self.displace(*args)
     
     def displace(self, *args):
-        '''Similar to obj.move(...), but make changes *INPLACE*'''
+        """Similar to obj.move(...), but make changes *INPLACE*"""
         
         if len(args) == 1:
             args = args[0]
@@ -734,7 +739,7 @@ DIMENSION_BASES = {0: Vec0D, 1: Vec1D, 2: Vec2D, 3: Vec3D, 4: Vec4D}
 #
 @set_promotion(Vec, Vec)
 def promote_vectors(u, v):
-    '''Promote two Vec types to the same type'''
+    """Promote two Vec types to the same type"""
 
     u_type = type(u)
     v_type = type(v)
@@ -783,6 +788,7 @@ def asvector_overload(op, tt):
     def overload(u, v):  # @DuplicatedSignature
         return real_op(Vec(*u), v)
 
+
 for op in [add, sub]:
     for tt in [tuple, list]:
         asvector_overload(op, tt)
@@ -799,25 +805,27 @@ def _assure_mutable_set_coord(obj):
 # Vector conversions
 #
 def asvector(obj):
-    '''Return object as an immutable vector'''
+    """Return object as an immutable vector"""
 
     if isinstance(obj, Vec):
         return obj
     else:
         return Vec(*obj)
 
+
 def asmvector(obj):
-    '''Return object as a mutable vector'''
+    """Return object as a mutable vector"""
 
     if isinstance(obj, mVec):
         return obj
     else:
         return mVec(*obj)
 
+
 def asavector(obj):
-    '''Return object as a vector.
+    """Return object as a vector.
     
-    Non-Vec objects are converted to immutable vectors.'''
+    Non-Vec objects are converted to immutable vectors."""
 
     if isinstance(obj, VecAny):
         return obj

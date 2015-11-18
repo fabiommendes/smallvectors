@@ -64,6 +64,50 @@ class MulElementWise(ABC, Object):
     """Implements elementwise multiplication and division"""
 
 
+    def __mulsame__(self, other):
+        return _from_data(self, [x * y for (x, y) in zip(self.flat, other.flat)])
+
+
+    def __truedivsame__(self, other):
+        return _from_data(self, [x / y for (x, y) in zip(self.flat, other.flat)])
+
+
+@mul.register(MulElementWise, MulElementWise, factory=True)
+def mul_elementwise_factory(argtypes, restype):
+    T, S = argtypes
+    if issubclass(T, S):
+        return S.__mulsame__
+    if issubclass(S, T):
+        return T.__mulsame__
+    if T.__origin__ is not S.__origin__:
+        return NotImplemented
+    if T.shape != S.shape:
+        return NotImplemented
+
+    dtype = promote_type(T.dtype, S.dtype)
+    def func(u, v):
+        return u.convert(dtype) * v.convert(dtype)
+    return func
+
+
+@truediv.register(MulElementWise, MulElementWise, factory=True)
+def truediv_elementwise_factory(argtypes, restype):
+    T, S = argtypes
+    if issubclass(T, S):
+        return S.__truedivsame__
+    if issubclass(S, T):
+        return T.__truedivsame__
+    if T.__origin__ is not S.__origin__:
+        return NotImplemented
+    elif T.shape != S.shape:
+        return NotImplemented
+
+    dtype = promote_type(T.dtype, S.dtype)
+    def func(u, v):
+        return u.convert(dtype) / v.convert(dtype)
+    return func
+
+
 #
 # Scalar multiplication
 #
@@ -78,7 +122,7 @@ def mul_scalar(u, number):
 
 @mul.register(Number, MulScalar)
 def rmul_scalar(number, u):
-    return _from_data(u, [x * number for x in u])
+    return _from_data(u, [number * x for x in u])
 
 
 @truediv.register(MulScalar, Number)
@@ -91,8 +135,27 @@ def floordiv_scalar(u, number):
     return _from_data(u, [x // number for x in u])
 
     
-class AddScalar(ABC):
+class AddScalar(ABC, Object):
     """Implements scalar addition and subtraction"""
+
+@add.register(AddScalar, Number)
+def add_scalar(u, number):
+    return _from_data(u, [x + number for x in u])
+
+
+@add.register(Number, AddScalar)
+def radd_scalar(number, u):
+    return _from_data(u, [number + x for x in u])
+
+
+@sub.register(AddScalar, Number)
+def sub_scalar(u, number):
+    return _from_data(u, [x - number for x in u])
+
+
+@sub.register(Number, AddScalar)
+def rsub_scalar(number, u):
+    return _from_data(u, [number - x for x in u])
 
 
 #

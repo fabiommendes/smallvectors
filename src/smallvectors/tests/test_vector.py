@@ -1,7 +1,6 @@
 import pytest
 from smallvectors import Vec, mVec, VecAny
 from generic import op
-from smallvectors.tests.test_arithmetic import *
 
 
 #
@@ -74,99 +73,23 @@ def test_vec_type_promotion_on_arithmetic_operations():
     assert isinstance(u * 1.0, Vec[2, float])
     assert isinstance(u / 1.0, Vec[2, float])
 
-
-#
-# Arithmetic tests
-#
-make_arithmetic_fixtures(
-    zero=Vec(0, 0),
-    x = Vec(1, 2), x_alts=[[1, 2], (1, 2)],
-    y = Vec(3, 4), y_alts=[[3, 4], (3, 4)],
-    scalar=2.0, scalar_add=False, smul=Vec(2, 4),
-    add=Vec(4, 6), sub=Vec(-2, -2),
-)
-
-
-def test_invalid_add_scalar(x):
-    with pytest.raises(TypeError):
-        y = x + 1
-
-
-def test_invalid_sub_scalar(x):
-    with pytest.raises(TypeError):
-        y = x - 1
-
-
-def test_invalid_mul_tuple(x):
-    with pytest.raises(TypeError):
-        y = x * (1, 2)
-
-
-def test_invalid_mul_vec(x):
-    with pytest.raises(TypeError):
-        y = x * x
-
-
-def test_invalid_div_tuple(x):
-    with pytest.raises(TypeError):
-        y = x / (1, 2)
-    with pytest.raises(TypeError):
-        y = (1, 2) / x
-
-
-def test_invalid_div_vec(x):
-    with pytest.raises(TypeError):
-        y = x / x
-
-
-def test_invalid_div_scalar(x):
-    with pytest.raises(TypeError):
-        y = 1 / x
-
-
-#
-# Tests vector API
-#
-def test_rotated_is_new(x):
-    assert x.rotated(0.0) is not x
-
-
-def test_rotated_keeps_norm(x):
-    for t in range(20):
-        Z1 = x.norm()
-        Z2 = x.rotated(6.28 * t / 20).norm()
-        assert abs(Z1 - Z2) < 1e-6, (Z1, Z2)
-
-
-def test_has_2d_methods(x):
-    for attr in ['perp', 'frompolar']:
-        assert hasattr(x, attr)
-
-
-def test_vec_almost_equal(x, y):
-    y = x + y / 1e9
-    w = x + 0 * y
-    assert x.almost_equal(y)
-    assert y.almost_equal(x)
-    assert x.almost_equal(w)
-    assert w.almost_equal(x)
-
-    def test_norm():
-        u = Vec(3, 4)
-        assert u.norm() == 5.0
-        assert abs(u.normalized() - Vec(3 / 5, 4 / 5)) < 1e-6
-        assert u.norm() == abs(u)
-
-    def test_clamp():
-        u = Vec(3, 4)
-        assert u.clampped(1, 10) == u
-        assert u.clampped(10) == 2 * u
-        assert u.clampped(2, 4) == u.normalized() * 4
-
-
 #
 # Regression testing
 #
+def test_norm():
+    u = Vec(3, 4)
+    assert u.norm() == 5.0
+    assert abs(u.normalized() - Vec(3 / 5, 4 / 5)) < 1e-6
+    assert u.norm() == abs(u)
+
+
+def test_clamp():
+    u = Vec(3, 4)
+    assert u.clampped(1, 10) == u
+    assert u.clampped(10) == 2 * u
+    assert u.clampped(2, 4) == u.normalized() * 4
+
+
 def test_mixed_vec_types():
     u = Vec[2, float](1, 2)
     v = Vec[2, int](1, 2)
