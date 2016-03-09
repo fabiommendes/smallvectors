@@ -1,6 +1,6 @@
 Metadata-Version: 1.1
 Name: smallvectors
-Version: 0.4.4
+Version: 0.4.6
 Summary: Efficient linear algebra in low dimensions
 Home-page: https://github.com/fabiommendes/smallshapes
 Author: Fábio Macêdo Mendes

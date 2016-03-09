@@ -189,7 +189,8 @@ class VecAny(SmallVectorsBase, Normed, AddElementWise, MulScalar):
         return self.dot(direction) * direction
 
     def clampped(self, min_length, max_length=None):
-        """Returns a new vector in which min_length <= abs(out) <= max_length."""
+        """Returns a new vector in which min_length <= abs(out) <=
+        max_length."""
 
         if max_length is None:
             ratio = min_length / self.norm()

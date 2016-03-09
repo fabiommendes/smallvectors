@@ -6,7 +6,6 @@ VERSION
 setup.py
 py2src/smallvectors/__init__.py
 py2src/smallvectors/affine.py
-py2src/smallvectors/arithmetic.py
 py2src/smallvectors/array.py
 py2src/smallvectors/direction.py
 py2src/smallvectors/matrix.py
@@ -34,6 +33,7 @@ py2src/smallvectors/tests/test_matrix.py
 py2src/smallvectors/tests/test_parametric.py
 py2src/smallvectors/tests/test_tools.py
 py2src/smallvectors/tests/test_vector.py
+py2src/smallvectors/tests/test_vector_examples_2d.py
 src/smallvectors/__init__.py
 src/smallvectors/affine.py
 src/smallvectors/array.py
@@ -69,3 +69,4 @@ src/smallvectors/tests/test_matrix.py
 src/smallvectors/tests/test_parametric.py
 src/smallvectors/tests/test_tools.py
 src/smallvectors/tests/test_vector.py
+src/smallvectors/tests/test_vector_examples_2d.py
