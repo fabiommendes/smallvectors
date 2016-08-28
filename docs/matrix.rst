@@ -25,10 +25,25 @@ is valid if ``v`` is a row vector, it is treated as a row vector (and likewise
 for column vectors). The result is always a vector.
 
 >>> v = Vec(1, 2)
->>> matrix * v
+>>> M * v
 Vec(5, 11)
->>> v * matrix
+>>> v * M
 Vec(7, 10)
 
-.. automodule:: smallvectors.matrix
+Class reference
+---------------
+
+.. autoclass:: smallvectors.Mat
    :members:
+   :inherited-members:
+
+.. autoclass:: smallvectors.mMat
+   :members:
+   :inherited-members:
+
+
+Useful functions
+----------------
+
+.. automodule:: smallvectors.matrix
+   :members: asmatrix, asamatrix, asmmatrix

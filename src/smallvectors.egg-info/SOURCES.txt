@@ -78,11 +78,11 @@ src/smallvectors/tests/test_tools.py
 src/smallvectors/tests/test_vector.py
 src/smallvectors/tests/test_vector_examples_2d.py
 src/smallvectors/vector/__init__.py
-src/smallvectors/vector/core.py
 src/smallvectors/vector/direction.py
 src/smallvectors/vector/linear.py
 src/smallvectors/vector/point.py
 src/smallvectors/vector/promotion.py
+src/smallvectors/vector/vec.py
 src/smallvectors/vector/vec_2d.py
 src/smallvectors/vector/vec_3d.py
 src/smallvectors/vector/vec_4d.py

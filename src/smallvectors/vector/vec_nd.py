@@ -1,7 +1,7 @@
 from generic import convert
 
 from smallvectors import FlatView
-from smallvectors.vector.core import _assure_mutable_set_coord
+from smallvectors.vector.vec import _assure_mutable_set_coord
 
 
 class VecND:

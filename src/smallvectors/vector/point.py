@@ -1,6 +1,6 @@
 from smallvectors.core import Immutable, Mutable
-from .core import mVec, Vec
-from .linear import LinearAny
+from smallvectors.vector.linear import LinearAny
+from smallvectors.vector.vec import mVec, Vec
 
 
 class PointAny(LinearAny):
@@ -33,3 +33,39 @@ class mPoint(PointAny, Mutable):
     """
     A mutable Point type.
     """
+
+
+# Vector conversions
+def aspoint(obj):
+    """
+    Return object as an immutable point.
+    """
+
+    if isinstance(obj, Point):
+        return obj
+    else:
+        return Point(*obj)
+
+
+def asmpoint(obj):
+    """
+    Return object as a mutable point.
+    """
+
+    if isinstance(obj, mPoint):
+        return obj
+    else:
+        return mPoint(*obj)
+
+
+def asapoint(obj):
+    """
+    Return object as a mutable or immutable point.
+
+    Non-Point objects are converted to immutable points.
+    """
+
+    if isinstance(obj, PointAny):
+        return obj
+    else:
+        return Point(*obj)

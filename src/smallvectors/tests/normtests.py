@@ -1,3 +1,7 @@
+"""
+These abstract tests can be imported in modules that implement normed objects.
+"""
+
 import pytest
 
 

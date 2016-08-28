@@ -114,7 +114,7 @@ class Affine(SmallVectorsBase, AddElementWise):
         """Return a minimum matricial representation of the affine
         transformation"""
 
-        return self.A.withcol(self.b)
+        return self.A.append_col(self.b)
 
     def asaugmented(self):
         """Return the augmented matrix representation of the affine transform.

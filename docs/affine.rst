@@ -2,42 +2,36 @@
 Affine transformations
 ======================
 
-Affine objects expose the matrix and displacement vector parts in the
-``affine.matrix`` and ``affine.vector`` attributes.
+.. code:: python
+   :class: hidden
 
+   from smallvectors import *
 
-Arithmetic operations
-=====================
+Affine transformations are a combination of a displacement with a linear
+transformation.  Affine objects expose the matrix and displacement vector parts
+respectively in the ``affine.linear`` and ``affine.translation`` attributes.
 
-Affine transformation class define arithmetical mathematical operations
-that can be useful to construct different affine transformations. These
-operations do not define an algebra in the strict mathmatical sense but are
-still useful to have (for those mathematically inclined, technically it is
-a ...?).
+We have to pass these two parameters to construct an Affine object
 
-It is simpler to explain by examples. The affine transformation is
-presented as a matrix augmented by a column vector
-
->>> A = Affine([[1, 2], [3, 4]], [5, 6])
+>>> M = [[1, 2],
+...      [3, 4]]
+>>> A = Affine(M, [5, 6])
 >>> print(A)
 |1  2 : 5|
 |3  4 : 6|
 
-The terms 1, 2, 3, 4 at the left represent the matrix part of the affine
-transformation and can be accessed in the matrix attribute. The column in
-the right (5, 6) represents the translation vector.
 
-This transformation can be applied to a vector using either the ``A * v``
-or the ``A(v)`` notations. The result is equivalent to multiply ``v`` by
-``A.linear`` part and then add ``A.translation``.
+We apply affine transforms to vectors using either the ``A * v`` or the ``A(v)``
+notations. The result is equivalent to multiply ``v`` by ``A.linear`` part and
+then add ``A.translation``.
 
 >>> A(1, 0)  # same as A((1, 0)) or A * (1, 0)
 Vec(6, 9)
 
-Of course this result is the same as applying the transformation manually
+Of course, this result is the same as applying the transformation manually
 
 >>> v = Vec(1, 0)
->>> A.A * v + A.b
+>>> A.linear * v + A.translation
 Vec(6, 9)
 
 Multiplication by a vector (to the right) is the same as function
@@ -45,13 +39,11 @@ application. There are however other operations that create new affine
 transformations. Adding or subtracting vectors return a new affine
 transformation in which only the vector part is modified. Geometrically
 this can be interpreted as a new transformation that translates the result
-of the previous transformation. More simply: if $A$ takes a vector, do some
-linear transforms and a translation afterwards, $(A + b)$ will perform the
-same operations and translate the result by b at the end.
+of the previous transformation.
 
->>> print(A - (4, 4))
-|1  2 : 1|
-|3  4 : 2|
+>>> print(A - A.translation)
+|1  2 : 0|
+|3  4 : 0|
 
 We can multiply the affine transformation by a number or matrix in order to
 affect both the matrix and vector parts.
@@ -74,9 +66,7 @@ It is not commutative, but it behaves as expected.
 The geometrical interpretation depends on what the matrix M do. If M is a
 rotation, then A * M rotates a vector and then apply the original affine
 transformation while M * A applies the affine transformation and then
-rotates the vector. It is up to the reader to work out some sittuations in
-which the order of transformations is clearly important.
-
+rotates the vector.
 
 Representations
 ===============
@@ -84,7 +74,7 @@ Representations
 We are viewing an affine transformation as combination of a linear
 transformation (matrix) plus a translation (vector). They can be
 represented differently. First, if we are only concerned about the
-coordinates of the transform, we can obtain it as a matrix with the
+coordinates of the transform, we can obtain them as a matrix with the
 translation vector appended to the rightmost column.
 
 >>> print(A.asmatrix())
@@ -92,11 +82,11 @@ translation vector appended to the rightmost column.
 |3  4  6|
 
 This has some inconveniences. The 2x3 matrix cannot be used to linearly
-transform vectors since it does not even have the correct shape. A matrix
+transform 2D vectors since it does not even have the correct shape. A matrix
 as shown above requires 3D vectors instead of the 2D that the affine
-transform operates. We can however use the following trick: take a (x, y)
-bidimensional vector and append a coordinate with value 1 resulting in
-(x, y, 1). When we apply the above matrix to that vector the result is the
+transform operates. We can however use the following trick: take a
+bidimensional vector ``(x, y)`` and append a coordinate with value 1 resulting in
+``(x, y, 1)``. When we apply the above matrix to that vector the result is the
 identical to the affine transformation!
 
 If we want to preserve this extra component, the trick is to append a new
@@ -111,8 +101,8 @@ method.
 |0  0  1|
 
 
-We can also construct a affine transform from these elements using the
-proper constructors
+We can also construct affine transforms from these elements using the proper
+constructors
 
 >>> T = Affine.frommatrix([[1, 2, 5],
 ...                        [3, 4, 6]])
@@ -125,5 +115,9 @@ As usual, the affine transformation object can be flattened by the
 >>> list(A.flat)
 [1, 2, 5, 3, 4, 6]
 
+Class reference
+---------------
+
 .. automodule:: smallvectors.affine
    :members:
+   :inherited-members:

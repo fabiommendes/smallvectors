@@ -1,6 +1,11 @@
 Vectors
 =======
 
+.. code:: python
+   :class: hidden
+
+   from smallvectors import *
+
 As the name suggest, :mod:`smallvectors` is a linear algebra library for
 manipulating vectors (and other objects) of low dimensionality. The most basic
 type is a vector:
@@ -25,11 +30,15 @@ Vectors classes are also parametrized by type and dimension. Hence we have an
 infinite type hierarchy for each scalar type. We use the rectangular bracket
 notation in order to designate the correct vector type
 
->>> Vec[2, int](1.5, 2)
+>>> Vec[2, int](1.0, 2)
 Vec(1, 2)
+>>> Vec[2, float](1, 2)
+Vec(1.0, 2.0)
 
-Reference
----------
+
+
+Class reference
+---------------
 
 .. autoclass:: smallvectors.Vec
    :members:
@@ -38,6 +47,12 @@ Reference
 .. autoclass:: smallvectors.mVec
    :members:
 
+
+Useful functions
+----------------
+
+.. automodule:: smallvectors.vector
+    :members: asvector, asmvector, asavector
 
 Direction
 =========
@@ -50,12 +65,17 @@ There is no mutable Direction type since most operations that can be done in a
 unity vector spoils the normalization constraint.
 
 
-Reference
----------
+Class reference
+---------------
 
 .. autoclass:: smallvectors.Direction
    :members:
 
+Useful functions
+----------------
+
+.. automodule:: smallvectors.vector
+   :members: asdirection
 
 Points
 ======
@@ -65,9 +85,18 @@ quantities with magnitude and direction, Point objects represent directly
 points in space.
 
 
+Class reference
+---------------
+
 .. autoclass:: smallvectors.Point
    :members:
 
-
 .. autoclass:: smallvectors.mPoint
    :members:
+
+
+Useful functions
+----------------
+
+.. automodule:: smallvectors.vector
+   :members: aspoint, asmpoint, asapoint

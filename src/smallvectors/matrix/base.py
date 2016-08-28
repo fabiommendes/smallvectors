@@ -8,7 +8,7 @@ from smallvectors.matrix.mat2x2 import Mat2x2Mixin
 from smallvectors.matrix.mat3x3mixin import Mat3x3Mixin
 from smallvectors.matrix.square import SquareMixin
 from smallvectors.tools import flatten, dtype as _dtype
-from smallvectors.vector.core import VecAny
+from smallvectors.vector.vec import VecAny
 
 __all__ = [
     # Types

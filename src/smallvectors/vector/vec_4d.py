@@ -1,6 +1,6 @@
 from generic import convert
 
-from .core import _assure_mutable_set_coord
+from .vec import _assure_mutable_set_coord
 from .vec_3d import Vec3D
 from .vec_nd import VecND
 

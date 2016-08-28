@@ -205,7 +205,7 @@ def asavector(obj):
     
     Non-Vec objects are converted to immutable vectors."""
 
-    if isinstance(obj, LinearAny):
+    if isinstance(obj, VecAny):
         return obj
     else:
         return Vec(*obj)

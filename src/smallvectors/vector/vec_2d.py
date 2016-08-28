@@ -1,8 +1,8 @@
 from generic import convert, InexactError, get_conversion
 
-from ..core import Mutable
-from .core import mVec, Vec, _assure_mutable_set_coord
-from .vec_nd import VecND, Vec1D
+from smallvectors.core import Mutable
+from smallvectors.vector.vec import mVec, Vec, _assure_mutable_set_coord
+from smallvectors.vector.vec_nd import VecND, Vec1D
 
 
 class Vec2D(VecND):

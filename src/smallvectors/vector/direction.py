@@ -1,5 +1,5 @@
 from smallvectors.vector.vec_2d import Vec2D
-from .core import Vec
+from smallvectors.vector.vec import Vec
 
 __all__ = ['Direction', 'asdirection']
 
