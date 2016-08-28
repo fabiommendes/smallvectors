@@ -26,7 +26,7 @@ def test_unit_object_has_unity_norm(unitary, tol, norm):
 
 
 def test_unit_object_is_normalized(unitary, norm, tol):
-    assert abs((unitary.normalized(norm) - unitary).norm(norm)) < tol
+    assert abs((unitary.normalize(norm) - unitary).norm(norm)) < tol
 
 
 def test_stretched_object_has_norm_greater_than_one(unitary, norm):

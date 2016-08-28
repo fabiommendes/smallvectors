@@ -27,7 +27,7 @@ from smallvectors.tests.normtests import (
 def test_vector_norm_defaults_to_euclidean(tol):
     u = Vec(3, 4)
     assert u.norm() == 5.0
-    assert abs(u.normalized() - Vec(3 / 5, 4 / 5)) < tol
+    assert abs(u.normalize() - Vec(3 / 5, 4 / 5)) < tol
     assert u.norm() == abs(u)
 
 
@@ -121,7 +121,7 @@ def test_clamp():
     u = Vec(3, 4)
     assert u.clamp(1, 10) == u
     assert u.clamp(10) == 2 * u
-    assert u.clamp(2, 4) == u.normalized() * 4
+    assert u.clamp(2, 4) == u.normalize() * 4
 
 
 def test_mixed_vec_types():

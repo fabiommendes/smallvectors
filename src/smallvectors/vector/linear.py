@@ -87,7 +87,7 @@ class LinearAny(SmallVectorsBase, AddElementWise, MulScalar):
 
     def as_direction(self):
         """
-        Returns a normalized copy of object as a direction
+        Returns a normalize copy of object as a direction
         """
 
         return self.__direction__(*self)

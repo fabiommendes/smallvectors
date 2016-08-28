@@ -1,5 +1,6 @@
 import abc
 
+from smallvectors.core.mixins import MathFunctionsMixin
 from .base import ABC, Immutable
 
 
@@ -13,7 +14,7 @@ def mutating(func):
     return func
 
 
-class Normed(ABC):
+class Normed(MathFunctionsMixin, ABC):
     """
     Base class for all objects that have a notion of norm
     """
@@ -45,9 +46,9 @@ class Normed(ABC):
         value = self.norm(which)
         return value * value
 
-    def normalized(self, which=None):
+    def normalize(self, which=None):
         """
-        Return a normalized version of object.
+        Return a normalize version of object.
 
         Normalizes according to the given method.
         """
@@ -56,18 +57,18 @@ class Normed(ABC):
             Z = self.norm(which)
             return self / Z
         except ZeroDivisionError:
-            raise ValueError('null element cannot be normalized')
+            raise ValueError('null element cannot be normalize')
 
     @mutating
-    def normalize(self, which=None):
+    def inormalize(self, which=None):
         """
-        Normalizes object *INPLACE*
+        Normalizes object *INPLACE*.
         """
 
         if isinstance(self, Immutable):
             raise TypeError('cannot normalize immutable object')
 
-        self /= self.norm(which)
+        self.__idiv__(self.norm(which))
 
     def is_unity(self, norm=None, tol=1e-6):
         """
@@ -85,3 +86,32 @@ class Normed(ABC):
         """
 
         return self.norm() == 0.0
+
+    def __idiv__(self, param):
+        return NotImplementedError
+
+
+class InnerProduct(Normed):
+    """
+    Object that implements an inner product with the .dot() method.
+    """
+
+    def dot(self, other):
+        """
+        Dot (inner) product with 'other' object.
+        """
+
+        raise NotImplementedError('subclasses must implement the .dot() '
+                                  'method')
+
+    def norm(self, which=None):
+        if which is None or which == 'euclidean':
+            return self._sqrt(self.dot(self))
+        else:
+            return super().norm(which)
+
+    def norm_sqr(self, which=None):
+        if which is None or which == 'euclidean':
+            return self.dot(self)
+        else:
+            return super().norm_sqr(which)

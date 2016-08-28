@@ -116,4 +116,4 @@ class Mat2x2Mixin(SquareMixin):
         except ZeroDivisionError:
             v2 = Vec(1, 0)
 
-        return [(l1, v1.normalized()), (l2, v2.normalized())]
+        return [(l1, v1.normalize()), (l2, v2.normalize())]

@@ -56,7 +56,7 @@ class VecAny(LinearAny, Normed):
             new_norm = min_length
 
         if new_norm != norm:
-            return self.normalized() * new_norm
+            return self.normalize() * new_norm
         else:
             return self.copy()
 

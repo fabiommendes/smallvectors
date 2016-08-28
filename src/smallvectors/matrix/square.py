@@ -90,7 +90,7 @@ class SquareMixin:
 
     def eigenvectors(self):
         """
-        Return the matrix of normalized column eigenvectors.
+        Return the matrix of normalize column eigenvectors.
         """
 
         return self.fromcols([vec for (_, vec) in self.eigenpairs()])

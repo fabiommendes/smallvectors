@@ -49,7 +49,7 @@ class Quaternion(object):
         return self.scalar ** 2 + self.vector.norm_sqr()
 
     def normalized(self):
-        """Return the normalized quaternion"""
+        """Return the normalize quaternion"""
 
         Z = self.norm_sqr()
         if abs(Z - 1.0) < 1e-6:
@@ -87,7 +87,7 @@ class Quaternion(object):
         rotation"""
 
         q = self.normalized()
-        return (m.acos(q.scalar), q.vector.normalized())
+        return (m.acos(q.scalar), q.vector.normalize())
 
     #
     # Magic methods

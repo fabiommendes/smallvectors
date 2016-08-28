@@ -37,8 +37,8 @@ class Direction(Vec):
         else:
             return super().norm_sqr(norm)
 
-    def normalize(self):
-        """Return a normalized version of vector"""
+    def inormalize(self):
+        """Return a normalize version of vector"""
 
         return self
 
