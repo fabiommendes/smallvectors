@@ -18,7 +18,7 @@ class Mat2x2Mixin(SquareMixin):
 
     # Flat attribute handling
     @classmethod
-    def fromflat(cls, data, copy=True, dtype=None):
+    def from_flat(cls, data, copy=True, dtype=None):
         if cls.__concrete__ and dtype is None:
             a, b, c, d = data
             dtype = cls.dtype
@@ -30,7 +30,7 @@ class Mat2x2Mixin(SquareMixin):
             return new
 
         # super() fix from 3to2 can't handle classmethods...
-        return super(Mat2x2Mixin, cls).fromflat(data, copy=copy, dtype=dtype)
+        return super(Mat2x2Mixin, cls).from_flat(data, copy=copy, dtype=dtype)
 
     @property
     def flat(self):

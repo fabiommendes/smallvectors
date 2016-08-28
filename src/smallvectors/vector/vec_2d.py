@@ -57,13 +57,15 @@ class Vec2D(VecND):
     # Constructors
     #
     @classmethod
-    def fromflat(cls, data, copy=True):
+    def from_flat(cls, data, copy=True):
         x, y = data
         return cls._fromcoords_unsafe(x, y)
 
     @classmethod
-    def frompolar(cls, radius, theta=0):
-        """Create vector from polar coordinates"""
+    def from_polar(cls, radius, theta=0):
+        """
+        Create vector from polar coordinates.
+        """
         return cls(radius * cls._cos(theta), radius * cls._sin(theta))
 
     @classmethod
@@ -73,9 +75,6 @@ class Vec2D(VecND):
         new._y = y
         return new
 
-    #
-    # Properties
-    #
     @property
     def y(self):
         return self._y
@@ -88,10 +87,8 @@ class Vec2D(VecND):
     x = x0 = Vec1D.x
     x1 = y
 
-    #
     # 2D specific API
-    #
-    def rotated_axis(self, axis, theta):
+    def rotate_axis(self, axis, theta):
         """
         Rotate vector around given axis by the angle theta.
         """
@@ -137,7 +134,7 @@ class Vec2D(VecND):
         Return a tuple with the (radius, theta) polar coordinates.
         """
 
-        return (self.norm(), self._atan2(self.y, self.x))
+        return self.norm(), self._atan2(self.y, self.x)
 
     def perp(self, ccw=True):
         """
@@ -151,9 +148,7 @@ class Vec2D(VecND):
         else:
             return self._fromcoords_unsafe(self.y, -self.x)
 
-    #
     # Performance overrides
-    #
     def distance(self, other):
         return self._sqrt((other.x - self._x) ** 2 + (other.y - self._y) ** 2)
 
@@ -179,46 +174,30 @@ class Vec2D(VecND):
             return self.__origin__[2, dtype](x, y)
 
     def angle(self, other):
-        """Computes the angle between two smallvectors"""
-
         cos_t = self.dot(other)
         sin_t = self.cross(other)
         return self._atan2(sin_t, cos_t)
 
     def is_null(self):
-        """Checks if vector has only null components"""
-
         if self._x == 0.0 and self._y == 0.0:
             return True
         else:
             return False
 
     def is_unity(self, norm=None, tol=1e-6):
-        """
-        Return True if the norm equals one within the given tolerance.
-        """
-
         if norm is None:
             return abs(self._x * self._x + self._y * self._y - 1) < 2 * tol
         else:
             return super().is_unity(norm, tol)
 
-    def norm(self, which=None):
-        """
-        Returns the norm of a vector.
-        """
-
-        if which is None:
+    def norm(self, norm=None):
+        if norm is None or norm == 'euclidean':
             return self._sqrt(self._x ** 2 + self._y ** 2)
         else:
-            return Vec.norm(self, which)
+            return super().norm(norm)
 
-    def norm_sqr(self, which=None):
-        """
-        Returns the squared norm of a vector.
-        """
-
-        if which is None:
+    def norm_sqr(self, norm=None):
+        if norm is None:
             return self._x ** 2 + self._y ** 2
         else:
-            return Vec.norm(self, which)
+            return super().norm_sqr(norm)

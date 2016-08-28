@@ -1,7 +1,5 @@
-import pytest
-from smallvectors import Mat, MatAny, mMat, Rotation2d, Vec
+from smallvectors import Mat, mMat, Rotation2d, Vec
 from smallvectors.tests.test_arithmetic import *
-
 
 #
 # Arithmetic tests
@@ -42,39 +40,40 @@ def test_make_rect_t():
 
 def test_fromrows_sqr():
     M1 = Mat([1, 2], [3, 4])
-    M2 = Mat.fromrows([[1, 2], [3, 4]])
+    M2 = Mat.from_rows([[1, 2], [3, 4]])
     assert M1 == M2
 
 
 def test_fromcols_sqr():
     M1 = Mat([1, 3], [2, 4])
-    M2 = Mat.fromcols([[1, 2], [3, 4]])
+    M2 = Mat.from_cols([[1, 2], [3, 4]])
     assert M1 == M2
 
 
 def test_fromrows():
     M1 = Mat([1, 2], [3, 4], [5, 6])
-    M2 = Mat.fromrows([[1, 2], [3, 4], [5, 6]])
+    M2 = Mat.from_rows([[1, 2], [3, 4], [5, 6]])
     assert M1 == M2
 
 
 def test_fromcols():
     M1 = Mat([1, 3, 5], [2, 4, 6])
-    M2 = Mat.fromcols([[1, 2], [3, 4], [5, 6]])
+    M2 = Mat.from_cols([[1, 2], [3, 4], [5, 6]])
     assert M1 == M2
 
 
 def test_fromcolsT():
     M1 = Mat([0, 3], [1, 4], [2, 5])
-    M2 = Mat.fromcols([[0, 1, 2], [3, 4, 5]])
+    M2 = Mat.from_cols([[0, 1, 2], [3, 4, 5]])
     assert M1 == M2
 
 
 def test_fromcolrows_sqr():
-    M1 = Mat.fromrows([[1, 2], [3, 4]])
-    M2 = Mat.fromcols([[1, 2], [3, 4]])
+    M1 = Mat.from_rows([[1, 2], [3, 4]])
+    M2 = Mat.from_cols([[1, 2], [3, 4]])
     assert M1.T == M2
     assert M1 == M2.T
+
 
 #
 # Basic properties and behaviors
@@ -104,7 +103,7 @@ def test_flat2x2():
 
 def test_flat2x2_redo():
     M1 = Mat([1, 2], [3, 4])
-    assert M1, Mat[2, 2].fromflat(M1.flat)
+    assert M1, Mat[2, 2].from_flat(M1.flat)
 
 
 #
@@ -203,8 +202,8 @@ def test_transpose_sqr():
 def test_widthdiag():
     M1 = Mat([1, 2], [3, 4])
     M2 = Mat([0, 2], [3, 0])
-    assert M1.withdiag([0, 0]) == M2
-    assert M1.droppingdiag() == M2
+    assert M1.set_diag([0, 0]) == M2
+    assert M1.drop_diag() == M2
 
 
 #
@@ -215,16 +214,19 @@ def test_eig2():
     assert M1.eigenpairs() == [(2.0, (0.0, 1.0)),
                                (1.0, (1.0, 0.0))]
 
+
 def test_det2():
     M1 = Mat([1, 0], [0, 2])
     M2 = Mat([1, 2], [3, 4])
     assert M1.det() == 2
     assert M2.det() == -2
 
+
 def test_inv2_trivial():
     M1 = Mat([1, 0], [0, 2])
     M2 = Mat([1, 0], [0, 0.5])
     assert M1.inv() == M2
+
 
 def test_inv2():
     M1 = Mat([1, 2], [3, 4])
@@ -290,14 +292,14 @@ def test_swapcols():
     M1.iswap_cols(0, 1)
     M2 = Mat([2, 1], [4, 3])
     assert M1 == M2
-    
+
 
 #
 # Regression testings
 #
 def test_rotation_matrix():
     assert Rotation2d(0) == [[1, 0], [0, 1]]
-    
-        
+
+
 if __name__ == '__main__':
     pytest.main('test_matrix.py -q')

@@ -112,7 +112,7 @@ class LinearAny(SmallVectorsBase, AddElementWise, MulScalar):
                 raise TypeError('invalid argument %r' % k)
             data[int(k[1:]) + 1] = v
 
-        return self.fromflat(data)
+        return self.from_flat(data)
 
     #
     # Geometric properties

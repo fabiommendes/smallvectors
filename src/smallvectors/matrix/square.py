@@ -10,36 +10,46 @@ class SquareMixin:
     """
 
     @classmethod
-    def fromdiag(cls, diag):
-        """Create diagonal matrix from diagonal terms"""
+    def from_diag(cls, diag):
+        """
+        Create diagonal matrix from diagonal terms.
+        """
 
         N = len(diag)
         data = [0] * (N * N)
         for i in range(N):
             data[N * i + i] = diag[i]
-        return cls.__origin__[N, N, _dtype(data)].fromflat(data, copy=False)
+        return cls.__origin__[N, N, _dtype(data)].from_flat(data, copy=False)
 
     def det(self):
-        """Return the determinant of the matrix"""
+        """
+        Return the determinant of the matrix.
+        """
 
         raise NotImplementedError
 
     def trace(self):
-        """Computes the trace (i.e., sum of all elements in the diagonal)"""
+        """
+        Computes the trace (i.e., sum of all elements in the diagonal).
+        """
 
         N = self.nrows
         data = self.flat
         return sum(data[i * N + i] for i in range(N))
 
     def diag(self):
-        """Return a vector with the diagonal elements of the matrix"""
+        """
+        Return a vector with the diagonal elements of the matrix.
+        """
 
         N = self.nrows
         data = self.flat
         return asvector([data.flat[i * N + i] for i in range(N)])
 
-    def withdiag(self, diag):
-        """Return a copy of the matrix with different diagonal terms"""
+    def set_diag(self, diag):
+        """
+        Return a copy of the matrix with different diagonal terms.
+        """
 
         M = self.nrows
         if len(diag) != M:
@@ -50,46 +60,58 @@ class SquareMixin:
         for i, x in enumerate(diag):
             data[i * M + i] = x
 
-        return self.fromflat(data, copy=False)
+        return self.from_flat(data, copy=False)
 
-    def droppingdiag(self):
-        """Return a copy of the matrix with diagonal removed (all elements are
-        set to zero)"""
+    def drop_diag(self):
+        """
+        Return a copy of the matrix with diagonal removed (all elements are
+        set to zero).
+        """
 
         N = self.nrows
         data = list(self.flat)
         for i in range(N):
             data[i * N + i] *= 0
-        return self.fromflat(data, copy=False)
+        return self.from_flat(data, copy=False)
 
     def eig(self):
-        """Return a tuple of (eigenvalues, eigenvectors)."""
+        """
+        Return a tuple of (eigenvalues, eigenvectors).
+        """
 
         return (self.eigval(), self.eigvec())
 
     def eigenvalues(self):
-        """Return a list of eigenvalues"""
+        """
+        Return a list of eigenvalues.
+        """
 
         return [val for (val, _) in self.eigenpairs()]
 
     def eigenvectors(self):
-        """Return the matrix of normalized column eigenvectors."""
+        """
+        Return the matrix of normalized column eigenvectors.
+        """
 
         return self.fromcols([vec for (_, vec) in self.eigenpairs()])
 
     def eigenpairs(self):
-        """Return a list of (eigenvalue, eigenvector) pairs."""
+        """
+        Return a list of (eigenvalue, eigenvector) pairs.
+        """
 
         return list(zip(self.eigval(), self.eigvec().cols()))
 
     def inv(self):
-        """Returns the inverse matrix"""
+        """
+        Return the inverse matrix.
+        """
 
         # Simple and naive matrix inversion using Gaussian elimination
         # Creates extended matrix
         N = self.nrows
         dtype = promote_type(float, self.dtype)
-        matrix = self._mmatrix[N, N, dtype].fromflat(self.flat)
+        matrix = self._mmatrix[N, N, dtype].from_flat(self.flat)
         matrix = matrix.append_col(self._identity(N))
 
         # Make left hand side upper triangular
@@ -116,20 +138,24 @@ class SquareMixin:
             matrix.imul_row(i, 1 / matrix[i, i])
 
         out = matrix.select_cols(range(N, 2 * N))
-        return self._matrix[N, N, dtype].fromflat(out.flat)
+        return self._matrix[N, N, dtype].from_flat(out.flat)
 
     def solve(self, b, method='gauss', **kwds):
-        """Solve the linear system ``matrix * x  = b`` for x."""
+        """
+        Solve the linear system ``matrix * x  = b`` for x.
+        """
 
         method = getattr(self, 'solve_%s' % method)
         return method(b, **kwds)
 
     def solve_jacobi(self, b, tol=1e-3, x0=None, maxiter=1000):
-        """Solve a linear using Gauss-Jacobi method"""
+        """
+        Solve a linear using Gauss-Jacobi method.
+        """
 
         b = asvector(b)
         x = b * 0
-        D = self.fromdiag([1.0 / x for x in self.diag()])
+        D = self.from_diag([1.0 / x for x in self.diag()])
         R = self.droppingdiag()
 
         for _ in range(maxiter):
@@ -139,11 +165,13 @@ class SquareMixin:
         return x
 
     def solve_gauss(self, b):
-        """Solve system by simple Gaussian elimination"""
+        """
+        Solve system by simple Gaussian elimination.
+        """
 
         # Creates extended matrix
         N = self.nrows
-        matrix = self._mmatrix[N, N, self._floating].fromflat(self.flat)
+        matrix = self._mmatrix[N, N, self._floating].from_flat(self.flat)
         matrix = matrix.append_col(b)
 
         for i in range(0, N - 1):
@@ -164,7 +192,8 @@ class SquareMixin:
         return A.solve_triangular(b)
 
     def solve_triangular(self, b, lower=False):
-        """Solve a triangular system.
+        """
+        Solve a triangular system.
 
         If lower=True, it assumes a lower triangular matrix, otherwise (default)
         assumes an upper triangular matrix.

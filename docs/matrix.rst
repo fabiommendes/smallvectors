@@ -2,6 +2,11 @@
 Matrices
 ========
 
+.. code:: python
+   :class: hidden
+
+   from smallvectors import *
+
 Matrices are most often created from a list of lists
 
 >>> M = Mat([1, 2],

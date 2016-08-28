@@ -20,7 +20,7 @@ class Array(SmallVectorsBase, Sequence, AddElementWise, MulElementWise,
     def __abstract_new__(cls, data):
         N = len(data)
         cls = cls[N, dtype(data)]
-        return cls.fromflat(data)
+        return cls.from_flat(data)
 
     def __init__(self, data):
         dtype = self.dtype
@@ -37,7 +37,7 @@ class Array(SmallVectorsBase, Sequence, AddElementWise, MulElementWise,
         return iter(self.flat)
 
     @classmethod
-    def fromflat(cls, data, dtype=None, copy=False):
+    def from_flat(cls, data, dtype=None, copy=False):
         if dtype is None:
             return cls(data)
         return super()(data, dtype=dtype, copy=copy)

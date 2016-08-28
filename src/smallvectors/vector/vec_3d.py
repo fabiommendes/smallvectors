@@ -6,10 +6,12 @@ from .vec_nd import VecND
 
 
 class Vec3D(VecND):
-    """Vector functions that only works in 3D.
+    """
+    Vector functions that only work in 3D.
 
     These functions are inserted to all Vec[3, ...] classes upon class
-    creation"""
+    creation.
+    """
 
     __slots__ = ('_x', '_y', '_z')
 
@@ -38,12 +40,12 @@ class Vec3D(VecND):
             raise RuntimeError('invalid index for getitem_simple: %s' % idx)
 
     @classmethod
-    def fromflat(cls, data, copy=True):
+    def from_flat(cls, data, copy=True):
         x, y, z = data
         return cls._fromcoords_unsafe(x, y, z)
 
     @classmethod
-    def fromspheric(cls, radius, phi=0, theta=0):
+    def from_spheric(cls, radius, phi=0, theta=0):
         """Create vector from spherical coordinates"""
 
         r = radius * cls._sin(phi)
@@ -53,7 +55,7 @@ class Vec3D(VecND):
         return cls(x, y, z)
 
     @classmethod
-    def fromcylindric(cls, radius, theta=0, z=0):
+    def from_cylindric(cls, radius, theta=0, z=0):
         """Create vector from cylindric coordinates"""
 
         x = radius * cls._cos(theta)
@@ -82,7 +84,9 @@ class Vec3D(VecND):
     x3 = z
 
     def cross(self, other):
-        """The cross product between two tridimensional vectors"""
+        """
+        The cross product between two tridimensional vectors.
+        """
 
         x, y, z = self
         a, b, c = other

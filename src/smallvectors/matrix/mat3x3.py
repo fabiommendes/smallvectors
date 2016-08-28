@@ -25,9 +25,9 @@ class Mat3x3Mixin(SquareMixin):
 
     def transpose(self):
         a, b, c, d, e, f, g, h, i = self.flat
-        return self.fromflat([a, d, g,
-                              b, e, h,
-                              c, f, i], copy=False)
+        return self.from_flat([a, d, g,
+                               b, e, h,
+                               c, f, i], copy=False)
 
     def inv(self):
         Z = 1 / self.det()
@@ -37,7 +37,7 @@ class Mat3x3Mixin(SquareMixin):
             (f * g - d * i) * Z, (a * i - c * g) * Z, (c * d - a * f) * Z,
             (d * h - e * g) * Z, (b * g - a * h) * Z, (a * e - b * d) * Z,
         ]
-        return self.fromflat(data, copy=False)
+        return self.from_flat(data, copy=False)
 
     # TODO: use these faster versions
     def __mul_matrix(self, other):
@@ -49,7 +49,7 @@ class Mat3x3Mixin(SquareMixin):
             d * j + e * m + f * p, d * k + e * n + f * q, d * l + e * o + f * r,
             g * j + h * m + i * p, g * k + h * n + i * q, g * l + h * o + i * r,
         ]
-        return outtype.fromflat(data, copy=False)
+        return outtype.from_flat(data, copy=False)
 
     def __mul_vector(self, other):
         a, b, c, d, e, f, g, h, i = self.flat
@@ -71,5 +71,3 @@ class mMat3x3:
         data[1], data[2] = data[3], data[6]
         data[3], data[5] = a, data[7]
         data[6], data[7] = b, c
-
-

@@ -134,10 +134,10 @@ class Flatable(ABC):
     _nullvalue = 0
 
     def __neg__(self):
-        return self.fromflat([-x for x in self], copy=False)
+        return self.from_flat([-x for x in self], copy=False)
 
     @classmethod
-    def fromflat(cls, data, copy=True, dtype=None):
+    def from_flat(cls, data, copy=True, dtype=None):
         """
         Initializes object from flattened data.
 
@@ -166,14 +166,14 @@ class Flatable(ABC):
             dtype = _dtype(data)
 
         T = cls.__origin__[cls.shape + (dtype,)]
-        return T.fromflat(data, copy=copy)
+        return T.from_flat(data, copy=copy)
 
     @classmethod
     def null(cls, shape=None):
         """Return an object in which all components are zero"""
 
         null = convert(cls._nullvalue, cls.dtype)
-        return cls.fromflat([null] * cls.size, shape=shape)
+        return cls.from_flat([null] * cls.size, shape=shape)
 
     def is_null(self):
         """Checks if object has only null components"""

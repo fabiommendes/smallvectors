@@ -46,7 +46,7 @@ class Affine(SmallVectorsBase, AddElementWise):
         for i, x in enumerate(vector):
             data.insert((i + 1) * M - 1, x)
         T = cls[N, dtype(data)]
-        return T.fromflat(data)
+        return T.from_flat(data)
 
     def __init__(self, matrix, vector):
         # Convert values
@@ -96,14 +96,14 @@ class Affine(SmallVectorsBase, AddElementWise):
         N = self.dim
         data = list(self.flat)
         del data[N::N + 1]
-        return Mat[N, N, self.dtype].fromflat(data)
+        return Mat[N, N, self.dtype].from_flat(data)
 
     @property
     def translation(self):
         """Translational part of the transformation"""
 
         N = self.dim
-        return Vec[N, self.dtype].fromflat(self.flat[N::N + 1], copy=False)
+        return Vec[N, self.dtype].from_flat(self.flat[N::N + 1], copy=False)
 
     A, b = linear, translation
 

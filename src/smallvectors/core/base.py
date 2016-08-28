@@ -83,7 +83,7 @@ class Sequentiable(ABC):
         return bool(self.size)
 
     @classmethod
-    def fromdata(cls, data):
+    def from_data(cls, data):
         """
         Initializes from a sequence of values.
         """

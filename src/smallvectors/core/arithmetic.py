@@ -189,8 +189,8 @@ def _check_vector(obj, other, op):
 
 def _from_data(obj, data):
     if isinstance(data[0], obj.dtype):
-        return type(obj).fromflat(data, copy=False)
+        return type(obj).from_flat(data, copy=False)
     else:
         dtype = type(data[0])
         cls = obj.__origin__[obj.shape + (dtype,)]
-        return cls.fromflat(data, copy=False)
+        return cls.from_flat(data, copy=False)

@@ -5,7 +5,7 @@ from smallvectors import Vec, asvector
 from smallvectors.core import SmallVectorsBase, Immutable, Mutable, \
     AddElementWise
 from smallvectors.matrix.mat2x2 import Mat2x2Mixin
-from smallvectors.matrix.mat3x3mixin import Mat3x3Mixin
+from smallvectors.matrix.mat3x3 import Mat3x3Mixin
 from smallvectors.matrix.square import SquareMixin
 from smallvectors.tools import flatten, dtype as _dtype
 from smallvectors.vector.vec import VecAny
@@ -59,7 +59,7 @@ class MatAny(SmallVectorsBase, AddElementWise):
     @classmethod
     def __abstract_new__(cls, *args, dtype=None):
         flat, nrows, ncols = flatten(args, 2)
-        return cls[nrows, ncols].fromflat(flat)
+        return cls[nrows, ncols].from_flat(flat)
 
     def __init__(self, *args):
         flat, N, M = flatten(args, 2)
@@ -68,7 +68,7 @@ class MatAny(SmallVectorsBase, AddElementWise):
             raise ValueError('data has an invalid shape: %s' % repr((N, M)))
 
     @classmethod
-    def fromdict(cls, D):
+    def from_dict(cls, D):
         """
         Build a matrix from a dictionary from indexes to values.
         """
@@ -82,10 +82,10 @@ class MatAny(SmallVectorsBase, AddElementWise):
             k = i * N + j
             data[k] = value
 
-        return cls.fromflat(data)
+        return cls.from_flat(data)
 
     @classmethod
-    def fromrows(cls, rows, dtype=None):
+    def from_rows(cls, rows, dtype=None):
         """
         Build matrix from a sequence of row vectors.
         """
@@ -93,14 +93,14 @@ class MatAny(SmallVectorsBase, AddElementWise):
         data, M, N = flatten(rows, 2)
         if (M, N) != cls.shape:
             if cls.size is None:
-                return cls[M, N, cls.dtype].fromflat(data, dtype)
+                return cls[M, N, cls.dtype].from_flat(data, dtype)
             msg = ('data shape %s is not consistent with matrix type %s' %
                    ((M, N), cls.shape))
             raise ValueError(msg)
-        return cls.fromflat(data, dtype=dtype)
+        return cls.from_flat(data, dtype=dtype)
 
     @classmethod
-    def fromcols(cls, cols, dtype=None):
+    def from_cols(cls, cols, dtype=None):
         """
         Build matrix from a sequence of column Vecs.
         """
@@ -112,11 +112,11 @@ class MatAny(SmallVectorsBase, AddElementWise):
 
         if (M, N) != cls.shape:
             if cls.size is None:
-                return cls[M, N, cls.dtype].fromflat(data, dtype)
+                return cls[M, N, cls.dtype].from_flat(data, dtype)
             msg = ('data shape %s is not consistent with matrix type %s' %
                    ((M, N), cls.shape))
             raise ValueError(msg)
-        return cls.fromflat(data, dtype=dtype)
+        return cls.from_flat(data, dtype=dtype)
 
     #
     # Attributes
@@ -284,7 +284,7 @@ class MatAny(SmallVectorsBase, AddElementWise):
                 k = i * N + j
                 data[k] = value
 
-        return self.fromflat(data)
+        return self.from_flat(data)
 
     def transpose(self):
         """
@@ -312,9 +312,9 @@ class MatAny(SmallVectorsBase, AddElementWise):
 
         N, M = self.shape
         if N == M:
-            return self.fromcols(self.rows())
+            return self.from_cols(self.rows())
         else:
-            return self.__origin__[M, N, self.dtype].fromcols(self.rows())
+            return self.__origin__[M, N, self.dtype].from_cols(self.rows())
 
     #
     # Shape transformations
@@ -353,7 +353,7 @@ class MatAny(SmallVectorsBase, AddElementWise):
 
         # FIXME: infer correct dtype
         T = self.__origin__[N, M, self.dtype]
-        return T.fromflat(flat, copy=False)
+        return T.from_flat(flat, copy=False)
 
     def append_col(self, data, index=None):
         """
@@ -382,7 +382,7 @@ class MatAny(SmallVectorsBase, AddElementWise):
 
         # FIXME: infer correct dtype
         T = self.__origin__[N, M, self.dtype]
-        return T.fromcols(cols)
+        return T.from_cols(cols)
 
     def drop_col(self, idx=-1):
         """
@@ -396,7 +396,7 @@ class MatAny(SmallVectorsBase, AddElementWise):
         data = list(self.cols())
         col = data.pop(idx)
         T = self.__origin__[M, N - 1, self.dtype]
-        return T.fromcols(data), col
+        return T.from_cols(data), col
 
     def drop_row(self, idx=-1):
         """
@@ -408,7 +408,7 @@ class MatAny(SmallVectorsBase, AddElementWise):
         data = list(self.rows())
         row = data.pop(idx)
         T = self.__origin__[M - 1, N, self.dtype]
-        return T.fromrows(data), row
+        return T.from_rows(data), row
 
     def select_cols(self, *indexes):
         """
@@ -418,7 +418,7 @@ class MatAny(SmallVectorsBase, AddElementWise):
         L = list(self.cols())
         data = [L[i] for i in indexes]
         T = self.__origin__[self.nrows, len(data), self.dtype]
-        return T.fromcols(data)
+        return T.from_cols(data)
 
     def select_rows(self, *indexes):
         """
@@ -429,7 +429,7 @@ class MatAny(SmallVectorsBase, AddElementWise):
         L = list(self.rows())
         data = [L[i] for i in indexes]
         T = self.__origin__[len(data), self.ncols, self.dtype]
-        return T.fromrows(data)
+        return T.from_rows(data)
 
     #
     # Magic methods
@@ -481,40 +481,40 @@ class MatAny(SmallVectorsBase, AddElementWise):
             return asvector([u.dot(other) for u in self.rows()])
 
         elif isinstance(other, number):
-            return self.fromflat([x * other for x in self.flat], copy=False)
+            return self.from_flat([x * other for x in self.flat], copy=False)
 
         elif isinstance(other, Mat):
             cols = list(other.cols())
             rows = list(self.rows())
             data = sum([[u.dot(v) for u in cols] for v in rows], [])
             cls = self.__origin__[len(rows), len(cols), _dtype(data)]
-            return cls.fromflat(data, copy=False)
+            return cls.from_flat(data, copy=False)
 
         else:
             return NotImplemented
 
     def __rmul__(self, other):
         if isinstance(other, number):
-            return self.fromflat([x * other for x in self.flat], copy=False)
+            return self.from_flat([x * other for x in self.flat], copy=False)
         else:
             other = asvector(other)
             return asvector([u.dot(other) for u in self.cols()])
 
     def __div__(self, other):
         if isinstance(other, number):
-            return self.fromflat(x / other for x in self.flat)
+            return self.from_flat(x / other for x in self.flat)
         else:
             return NotImplemented
 
     def __truediv__(self, other):
         if isinstance(other, number):
-            return self.fromflat(x / other for x in self.flat)
+            return self.from_flat(x / other for x in self.flat)
         else:
             return NotImplemented
 
     def __floordiv__(self, other):
         if isinstance(other, number):
-            return self.fromflat(x // other for x in self.flat)
+            return self.from_flat(x // other for x in self.flat)
         else:
             return NotImplemented
 
@@ -534,19 +534,19 @@ class MatAny(SmallVectorsBase, AddElementWise):
         return zip(self.flat, other.flat)
 
     def __add__(self, other):
-        return self.fromflat(x + y for (x, y) in self._zip_other(other))
+        return self.from_flat(x + y for (x, y) in self._zip_other(other))
 
     def __radd__(self, other):
-        return self.fromflat(y + x for (x, y) in self._zip_other(other))
+        return self.from_flat(y + x for (x, y) in self._zip_other(other))
 
     def __sub__(self, other):
-        return self.fromflat(x - y for (x, y) in self._zip_other(other))
+        return self.from_flat(x - y for (x, y) in self._zip_other(other))
 
     def __rsub__(self, other):
-        return self.fromflat(y - x for (x, y) in self._zip_other(other))
+        return self.from_flat(y - x for (x, y) in self._zip_other(other))
 
     def __neg__(self):
-        return self.fromflat(-x for x in self.flat)
+        return self.from_flat(-x for x in self.flat)
 
     def __nonzero__(self):
         return True
@@ -692,7 +692,7 @@ def identity(N, dtype=float):
     Return an identity matrix of size N by N.
     """
 
-    return Mat[N, N, dtype].fromdiag([1] * N)
+    return Mat[N, N, dtype].from_diag([1] * N)
 
 
 def midentity(N, dtype=float):
@@ -700,7 +700,7 @@ def midentity(N, dtype=float):
     Return a mutable identity matrix of size N by N.
     """
 
-    return mMat[N, N, dtype].fromdiag([1] * N)
+    return mMat[N, N, dtype].from_diag([1] * N)
 
 
 SquareMixin._matrix = Mat

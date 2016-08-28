@@ -63,7 +63,7 @@ def test_rotated_keeps_norm(x):
 
 
 def test_has_2d_methods(x):
-    for attr in ['perp', 'frompolar']:
+    for attr in ['perp', 'from_polar']:
         assert hasattr(x, attr)
 
 

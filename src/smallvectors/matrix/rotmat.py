@@ -1,9 +1,9 @@
 import numbers
+
 from smallvectors.matrix import Mat
 
 
 class Unitary(Mat):
-
     """Base class for all unitary matrices (e.g., rotation matrices).
     
     The conjugate of an unitary matrix is equal to its inverse. Unitary matrices
@@ -12,14 +12,13 @@ class Unitary(Mat):
 
     __slots__ = ()
 
-
     @classmethod
     def __preprarebases__(cls, params):
         N, M, dtype = params
         if N != M:
             raise TypeError('unitary matrices must be squared')
         if issubclass(dtype, numbers.Integral):
-            raise TypeError('cannot create integer valued unitary matrices') 
+            raise TypeError('cannot create integer valued unitary matrices')
         return super().__preparebases__(params)
 
     def inv(self):
@@ -30,8 +29,9 @@ class Unitary(Mat):
 
 
 class Rotation2d(Unitary[2, 2, float]):
-
-    """Rotation matrix in 2D"""
+    """
+    Rotation matrix in 2D.
+    """
 
     __slots__ = ('theta',)
 
@@ -46,7 +46,9 @@ class Rotation2d(Unitary[2, 2, float]):
 
 
 class Rotation3d(Unitary[3, 3, float]):
-    """Rotation matrix in 3D"""
+    """
+    Rotation matrix in 3D
+    """
 
     __slots__ = ('theta',)
 
@@ -67,13 +69,3 @@ class Rotation3d(Unitary[3, 3, float]):
             [Ccompl * ab - S * c, C + Ccompl * bb, Ccompl * bc + S * a],
             [Ccompl * ac + S * b, Ccompl * bc - S * a, C + Ccompl * cc],
         )
-
-if __name__ == '__main__':
-    print(Rotation2d.__concrete__)
-    print(Rotation2d.__subtypes__)
-    print(Rotation2d.__abstract__)
-    print(Rotation2d.mro())
-    R2 = Rotation2d(0.1)
-    R3 = Rotation3d(0.1, (0, 1, 0))
-    print(R2)
-    print(R3)

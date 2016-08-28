@@ -42,7 +42,7 @@ class Vec4D(VecND):
             raise RuntimeError('invalid index for getitem_simple: %s' % idx)
 
     @classmethod
-    def fromflat(cls, data, copy=True):
+    def from_flat(cls, data, copy=True):
         x, y, z, w = data
         return cls._fromcoords_unsafe(x, y, z, w)
 
