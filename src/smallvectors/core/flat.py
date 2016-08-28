@@ -105,7 +105,7 @@ class FlatView(collections.Sequence):
             setter = self.owner.__flatsetitem__
         except AttributeError:
             raise TypeError('object must implement __flatsetitem__ in order '
-                            'to support item assigment')
+                            'to support item assignment')
         else:
             N = self.owner.size
 
@@ -132,12 +132,18 @@ class Flatable(ABC):
     """
 
     _nullvalue = 0
+    __concrete__ = NotImplemented
+    __origin__ = NotImplemented
+    __flat__ = NotImplemented
+    size = NotImplemented
+    dtype = NotImplemented
+    shape = NotImplemented
 
     def __neg__(self):
         return self.from_flat([-x for x in self], copy=False)
 
     @classmethod
-    def from_flat(cls, data, copy=True, dtype=None):
+    def from_flat(cls, data, copy=True, dtype=None, shape=None):
         """
         Initializes object from flattened data.
 
@@ -145,11 +151,9 @@ class Flatable(ABC):
         possible. The caller is responsible for not sharing this data
         with other mutable objects.
 
-        Note
-        ----
-
-        For subclass implementers: this function only normalizes an iterable
-        data for final consumption.
+        Note:
+            This function only normalizes an iterable data for final
+            consumption.
         """
 
         if cls.__concrete__:
@@ -158,7 +162,7 @@ class Flatable(ABC):
                 new.flat = cls.__flat__(data, copy)
                 return new
         elif cls.size is None:
-            raise TypeError('shapeless types cannot instanciate objects')
+            raise TypeError('shapeless types cannot instantiate objects')
 
         dtype = dtype or cls.dtype
         if dtype is Any or dtype is None:
@@ -170,7 +174,9 @@ class Flatable(ABC):
 
     @classmethod
     def null(cls, shape=None):
-        """Return an object in which all components are zero"""
+        """
+        Return an object in which all components are zero.
+        """
 
         null = convert(cls._nullvalue, cls.dtype)
         return cls.from_flat([null] * cls.size, shape=shape)

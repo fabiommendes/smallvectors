@@ -5,6 +5,7 @@ from smallvectors.vector.vec import mVec, Vec, _assure_mutable_set_coord
 from smallvectors.vector.vec_nd import VecND, Vec1D
 
 
+# noinspection PyMissingConstructor
 class Vec2D(VecND):
     """
     Vector functions that only works in 2D.
@@ -14,6 +15,37 @@ class Vec2D(VecND):
     """
 
     __slots__ = ('_x', '_y')
+
+    @classmethod
+    def from_flat(cls, data, copy=True):
+        x, y = data
+        return cls._fromcoords_unsafe(x, y)
+
+    @classmethod
+    def from_polar(cls, radius, theta=0):
+        """
+        Create vector from polar coordinates.
+        """
+        return cls(radius * cls._cos(theta), radius * cls._sin(theta))
+
+    @classmethod
+    def _fromcoords_unsafe(cls, x, y):
+        new = object.__new__(cls)
+        new._x = x
+        new._y = y
+        return new
+
+    @property
+    def y(self):
+        return self._y
+
+    @y.setter
+    def y(self, value):
+        _assure_mutable_set_coord(self)
+        self._y = convert(value, self.dtype)
+
+    x = x0 = Vec1D.x
+    x1 = y
 
     def __init__(self, x, y):
         self._x = convert(x, self.dtype)
@@ -52,40 +84,6 @@ class Vec2D(VecND):
 
     def __truediv__(self, other):
         return self * (1.0 / other)
-
-    #
-    # Constructors
-    #
-    @classmethod
-    def from_flat(cls, data, copy=True):
-        x, y = data
-        return cls._fromcoords_unsafe(x, y)
-
-    @classmethod
-    def from_polar(cls, radius, theta=0):
-        """
-        Create vector from polar coordinates.
-        """
-        return cls(radius * cls._cos(theta), radius * cls._sin(theta))
-
-    @classmethod
-    def _fromcoords_unsafe(cls, x, y):
-        new = object.__new__(cls)
-        new._x = x
-        new._y = y
-        return new
-
-    @property
-    def y(self):
-        return self._y
-
-    @y.setter
-    def y(self, value):
-        _assure_mutable_set_coord(self)
-        self._y = convert(value, self.dtype)
-
-    x = x0 = Vec1D.x
-    x1 = y
 
     # 2D specific API
     def rotate_axis(self, axis, theta):

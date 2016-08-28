@@ -20,6 +20,13 @@ class Sequentiable(ABC):
     Base class for all objects that support iteration.
     """
 
+    __origin__ = None
+    _flatclass = NotImplemented
+    dtype = NotImplemented
+    size = NotImplemented
+    shape = NotImplemented
+    is_immutable = False
+
     def __init__(self, *args):
         """
         Directly called upon instantiation of concrete subtypes. (e.g.: at
@@ -54,10 +61,23 @@ class Sequentiable(ABC):
                 return self[size + key]
 
         elif isinstance(key, slice):
-            return [self[i] for i in range(*slice)]
+            start, stop, step = key
+            return [self[i] for i in range(start, stop, step)]
 
         else:
             raise TypeError('invalid index: %r' % key)
+
+    def __setitem__(self, key, value):
+        if self.is_immutable:
+            raise KeyError('cannot set coordinate of immutable object')
+        else:
+            raise NotImplementedError('subclass must implement __setitem__')
+
+    def __len__(self):
+        return NotImplemented
+
+    def __getstate__(self):
+        return tuple(self)
 
     def __getitem_simple__(self, key):
         for i, x in zip(self, range(len(self))):
@@ -97,6 +117,7 @@ class SmallVectorsMeta(ParametricMeta):
     """
 
 
+# noinspection PyAbstractClass
 class SmallVectorsBase(MathFunctionsMixin, Flatable, Sequentiable, Object,
                        metaclass=SmallVectorsMeta):
     """
@@ -153,7 +174,7 @@ class SmallVectorsBase(MathFunctionsMixin, Flatable, Sequentiable, Object,
     @classmethod
     def __abstract_new__(cls, *args, shape=None, dtype=None):
         """
-        This function is called when user tries to instatiate an abstract
+        This function is called when user tries to instantiate an abstract
         type. It just finds the proper concrete type and instantiate it.
         """
         if dtype is None:
@@ -176,11 +197,31 @@ class SmallVectorsBase(MathFunctionsMixin, Flatable, Sequentiable, Object,
         else:
             return cls.__origin__(*self, dtype=dtype)
 
+    def copy(self):
+        return NotImplemented
+
 
 class Mutable(_Mutable):
     """
     Base class for all mutable types.
     """
+
+    def __getstate__(self):
+        return NotImplemented
+
+    _immutable_ = NotImplemented
+
+    @property
+    def _mutable_(self):
+        return self.__class__
+
+    @property
+    def is_mutable(self):
+        return True
+
+    @property
+    def is_immutable(self):
+        return False
 
     def mutable(self):
         """
@@ -201,13 +242,33 @@ class Mutable(_Mutable):
             immutable = [T for T in siblings if issubclass(T, Immutable)]
             assert len(immutable) == 1
             cls = type(self)._immutable_ = immutable[0]
-        return cls(*self)
+        return cls(*self.__getstate__())
+
+    def copy(self):
+        return NotImplemented
 
 
 class Immutable(_Immutable):
     """
     Base class for all immutable types.
     """
+
+    def __getstate__(self):
+        return NotImplemented
+
+    _mutable_ = NotImplemented
+
+    @property
+    def _immutable_(self):
+        return self.__class__
+
+    @property
+    def is_mutable(self):
+        return False
+
+    @property
+    def is_immutable(self):
+        return True
 
     def mutable(self):
         """
@@ -221,7 +282,7 @@ class Immutable(_Immutable):
             mutable = [T for T in siblings if issubclass(T, Mutable)]
             assert len(mutable) == 1
             cls = type(self)._mutable_ = mutable[0]
-        return cls(*self)
+        return cls(*self.__getstate__())
 
     def immutable(self):
         """

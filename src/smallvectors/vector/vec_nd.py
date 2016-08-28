@@ -1,10 +1,11 @@
 from generic import convert
 
 from smallvectors import FlatView
+from smallvectors.vector.linear import LinearAny
 from smallvectors.vector.vec import _assure_mutable_set_coord
 
 
-class VecND:
+class VecND(LinearAny):
     """
     Base class with overrides for any dimension
     """
@@ -33,9 +34,6 @@ class Vec0D(VecND):
 
     __slots__ = ()
 
-    def __init__(self):
-        pass
-
     def __len__(self):
         return 0
 
@@ -46,6 +44,7 @@ class Vec0D(VecND):
         raise IndexError(idx)
 
 
+# noinspection PyMissingConstructor
 class Vec1D(VecND):
     """
     1D Vectors (is this necessary?)

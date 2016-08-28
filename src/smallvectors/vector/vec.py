@@ -4,6 +4,7 @@ from smallvectors.vector.linear import LinearAny
 __all__ = ['mVec', 'Vec', 'asvector', 'asmvector', 'asavector']
 
 
+# noinspection PyAbstractClass
 class VecAny(LinearAny, Normed):
     """
     Base class for Vec and mVec
@@ -115,9 +116,6 @@ class VecAny(LinearAny, Normed):
         raise TypeError(msg)
 
 
-#
-# User-facing types
-#
 class Vec(VecAny, Immutable):
     """
     Base class for all immutable vector types. Each dimension and type have

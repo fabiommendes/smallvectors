@@ -1,9 +1,10 @@
-from smallvectors.tools import dtype as _dtype
-from smallvectors.vector import DIMENSION_BASES
 from smallvectors import SmallVectorsBase, MulScalar, AddElementWise, \
     Mutable
+from smallvectors.tools import dtype as _dtype
+from smallvectors.vector import DIMENSION_BASES
 
 
+# noinspection PyAbstractClass
 class LinearAny(SmallVectorsBase, AddElementWise, MulScalar):
     """
     Common implementations for Vec and Point types
@@ -50,12 +51,9 @@ class LinearAny(SmallVectorsBase, AddElementWise, MulScalar):
             if not hasattr(cls, attr):
                 setattr(cls, attr, prop)
             if i < 4:
-                attr = 'xyzw'[i]
+                attr = ('x', 'y', 'z', 'w')[i]
                 if not hasattr(cls, attr):
                     setattr(cls, attr, prop)
-
-    def __getitem_simple__(self, idx):
-        return self.flat[idx]
 
     @classmethod
     def __abstract_new__(cls, *args, dtype=None):  # @NoSelf
@@ -67,9 +65,19 @@ class LinearAny(SmallVectorsBase, AddElementWise, MulScalar):
             dtype = _dtype(args)
         return cls[len(args), dtype](*args)
 
-    #
+    def __getitem_simple__(self, idx):
+        return self.flat[idx]
+
+    def __vector__(self, v):
+        return NotImplemented
+
+    def __direction__(self, v):
+        return NotImplemented
+
+    def __point__(self, v):
+        return NotImplemented
+
     # Representation and conversions
-    #
     def as_vector(self):
         """
         Returns a copy of object as a vector
@@ -114,9 +122,7 @@ class LinearAny(SmallVectorsBase, AddElementWise, MulScalar):
 
         return self.from_flat(data)
 
-    #
     # Geometric properties
-    #
     def almost_equal(self, other, tol=1e-3):
         """
         Return True if two vectors are almost equal to each other.
