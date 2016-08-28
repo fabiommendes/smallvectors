@@ -1,15 +1,10 @@
-# -*- coding: utf8 -*-
-'''
-Quaternion algebra and rotations
-'''
+import math as m
 
 from smallvectors import Vec3, normalized
-import math as m
 
 
 class Quaternion(object):
-
-    '''A quaternion class'''
+    """A quaternion class"""
 
     def __init__(self, *args):
         if len(args) == 1:
@@ -23,7 +18,7 @@ class Quaternion(object):
 
     @classmethod
     def from_rotation(cls, theta, axis):
-        '''Create a rotation quaternion from angle and rotation axis'''
+        """Create a rotation quaternion from angle and rotation axis"""
 
         return Quaternion(m.cos(theta / 2), m.sin(theta / 2) * normalized(axis))
 
@@ -31,12 +26,12 @@ class Quaternion(object):
     # Special operations
     #
     def conjugate(self):
-        '''Return the conjugate quaternion'''
+        """Return the conjugate quaternion"""
 
         return Quaternion(self.scalar, -self.vector)
 
     def inv(self):
-        '''Return the inverse quaternion'''
+        """Return the inverse quaternion"""
 
         return Quaternion(self.scalar, -self.vector) / self.norm_sqr()
 
@@ -44,17 +39,17 @@ class Quaternion(object):
     # Geoemtric operations
     #
     def norm(self):
-        '''Absolute value of quaternion'''
+        """Absolute value of quaternion"""
 
         return m.sqrt(self.scalar ** 2 + self.vector.norm_sqr())
 
     def norm_sqr(self):
-        '''Squared absolute value'''
+        """Squared absolute value"""
 
         return self.scalar ** 2 + self.vector.norm_sqr()
 
     def normalized(self):
-        '''Return the normalized quaternion'''
+        """Return the normalized quaternion"""
 
         Z = self.norm_sqr()
         if abs(Z - 1.0) < 1e-6:
@@ -66,7 +61,7 @@ class Quaternion(object):
     # Conversion functions
     #
     def to_matrix(self):
-        '''Convert quaternion to the equivalent rotation matrix'''
+        """Convert quaternion to the equivalent rotation matrix"""
 
         from mathtools import Mat3
 
@@ -88,8 +83,8 @@ class Quaternion(object):
                      [zx - sy, yz + sx, DD + zz]])
 
     def to_rotation(self):
-        '''Return a tuple of (theta, axis) equivalent to the quaternion
-        rotation'''
+        """Return a tuple of (theta, axis) equivalent to the quaternion
+        rotation"""
 
         q = self.normalized()
         return (m.acos(q.scalar), q.vector.normalized())

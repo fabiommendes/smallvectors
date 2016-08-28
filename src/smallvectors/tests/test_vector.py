@@ -1,6 +1,46 @@
 import pytest
-from smallvectors import Vec, mVec, VecAny
+
 from generic import op
+from smallvectors import Vec, mVec
+from smallvectors.vector.linear import LinearAny
+
+
+#
+# Vector norm
+#
+@pytest.fixture
+def unitary():
+    return Vec(0.6, 0.8)
+
+from smallvectors.tests.normtests import (
+    norm, tol,
+    test_unit_object_has_unity_norm,
+    test_triangular_identity,
+    test_unit_object_is_normalized,
+    test_shrunk_object_has_norm_smaller_than_one,
+    test_stretched_object_has_norm_greater_than_one,
+    test_null_vector_is_null,
+    assert_triangular_identity,
+)
+
+
+def test_vector_norm_defaults_to_euclidean(tol):
+    u = Vec(3, 4)
+    assert u.norm() == 5.0
+    assert abs(u.normalized() - Vec(3 / 5, 4 / 5)) < tol
+    assert u.norm() == abs(u)
+
+
+def test_triangular_identity_2D():
+    assert_triangular_identity(Vec(1, 2), Vec(3, 4), None)
+    assert_triangular_identity(Vec(1, 1), Vec(1, 1), None)
+    assert_triangular_identity(Vec(1, 2), Vec(0, 0), None)
+
+
+def test_triangular_identity_3D():
+    assert_triangular_identity(Vec(1, 2, 3), Vec(4, 5, 6), None)
+    assert_triangular_identity(Vec(1, 2, 3), Vec(1, 2, 3), None)
+    assert_triangular_identity(Vec(1, 2, 3), Vec(0, 0, 0), None)
 
 
 #
@@ -18,8 +58,8 @@ def test_dispatch():
 
 
 def test_subclass():
-    assert issubclass(Vec, VecAny)
-    assert issubclass(mVec, VecAny)
+    assert issubclass(Vec, LinearAny)
+    assert issubclass(mVec, LinearAny)
 
 
 def test_unique_subclass():
@@ -73,21 +113,15 @@ def test_vec_type_promotion_on_arithmetic_operations():
     assert isinstance(u * 1.0, Vec[2, float])
     assert isinstance(u / 1.0, Vec[2, float])
 
+
 #
 # Regression testing
 #
-def test_norm():
-    u = Vec(3, 4)
-    assert u.norm() == 5.0
-    assert abs(u.normalized() - Vec(3 / 5, 4 / 5)) < 1e-6
-    assert u.norm() == abs(u)
-
-
 def test_clamp():
     u = Vec(3, 4)
-    assert u.clampped(1, 10) == u
-    assert u.clampped(10) == 2 * u
-    assert u.clampped(2, 4) == u.normalized() * 4
+    assert u.clamp(1, 10) == u
+    assert u.clamp(10) == 2 * u
+    assert u.clamp(2, 4) == u.normalized() * 4
 
 
 def test_mixed_vec_types():

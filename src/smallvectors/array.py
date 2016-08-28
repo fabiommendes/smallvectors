@@ -1,17 +1,18 @@
 from collections import Sequence
 from generic import convert
 from generic.op import add, sub, mul, div
-from smallvectors import (SmallVectorsBase, Flat, dtype,
+from smallvectors import (SmallVectorsBase, dtype,
                           AddElementWise, MulElementWise, AddScalar, MulScalar)
-
+from smallvectors.core.flat import Flat
 
 __all__ = ['Array']
 
 
 class Array(SmallVectorsBase, Sequence, AddElementWise, MulElementWise,
             AddScalar, MulScalar):
-
-    """Unidimensional array of uniform objects."""
+    """
+    Unidimensional array of uniform objects.
+    """
 
     __parameters__ = [int, type]
 

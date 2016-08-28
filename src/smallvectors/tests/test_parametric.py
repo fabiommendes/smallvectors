@@ -1,14 +1,14 @@
 import pytest
 from generic.tests.test_parametric import *
-from smallvectors import Vec, VecAny, SmallVectorsBase, SmallVectorsMeta
-
+from smallvectors import Vec, SmallVectorsBase, SmallVectorsMeta
+from smallvectors.vector.linear import LinearAny
 
 del A, B
 
 
 @pytest.fixture
 def A():
-    return VecAny
+    return LinearAny
 
 @pytest.fixture
 def B():

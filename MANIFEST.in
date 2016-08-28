@@ -1,5 +1,6 @@
-include INSTALL.txt
-include README.txt
+include INSTALL.rst
+include README.rst
+include LICENSE
 include VERSION
-include py2install
-recursive-include py2src *.py
+include requirements.txt
+include tasks.py

@@ -1,9 +1,12 @@
 import itertools
 from generic import promote
+from lazyutils import lazy
 
 
 def flatten(L, ndim=None):
-    '''Flatten the given list of lists and return a tuple of (data, *dimensions)'''
+    """
+    Flatten the given list of lists and return a tuple of (data, *dimensions)
+    """
     
     flat = list(L)
     indices = [len(flat)]
@@ -27,7 +30,9 @@ def flatten(L, ndim=None):
     
 
 def commonbase(T1, *args):
-    '''Returns the most specialized common base type between T1 and T2'''
+    """
+    Returns the most specialized common base type between T1 and T2.
+    """
 
     common = object
 
@@ -55,7 +60,9 @@ def commonbase(T1, *args):
 
 
 def dtype(values):
-    '''Return the dtype for a group of values'''
+    """
+    Return the dtype for a group of values.
+    """
 
     if not values:
         raise TypeError('trying to find the type of an empty list')
@@ -75,10 +82,11 @@ def dtype(values):
 
 
 def shape(data):
-    '''Return the shape of a list, list of lists, list of list of lists, etc.
+    """
+    Return the shape of a list, list of lists, list of list of lists, etc.
 
     Non-uniform shapes raises an ValueError.
-    '''
+    """
     try:
         return data.shape
     except AttributeError:
@@ -92,23 +100,11 @@ def shape(data):
 
         return tuple(shape)
 
-class lazy(object):
-
-    '''Lazy accessor'''
-
-    def __init__(self, func):
-        self.func = func
-
-    def __get__(self, obj, cls=None):
-        if obj is None:
-            return self
-        value = self.func(obj)
-        setattr(obj, self.func.__name__, value)
-        return value
-
 
 def sign(x):
-    '''Returns -1, 0, or 1 for the sign of a number'''
+    """
+    Returns -1, 0, or 1 for the sign of a number.
+    """
 
     if x > 0:
         return 1

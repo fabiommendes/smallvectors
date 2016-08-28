@@ -1,32 +1,26 @@
-#-*- coding: utf8 -*-
+# -*- coding: utf8 -*-
 import os
-import setuptools
+
 import sys
-from setuptools import setup
+from setuptools import setup, find_packages
 
-#
-# Read VERSION from file and write it in the appropriate places
-#
-AUTHOR = 'Fábio Macêdo Mendes'
-BASE, _ = os.path.split(__file__)
-with open(os.path.join(BASE, 'VERSION')) as F:
-    VERSION = F.read().strip()
-path = os.path.join(BASE, 'src', 'smallvectors', 'meta.py')
-with open(path, 'w') as F:
-    F.write(
-        '# -*- coding: utf8 -*-\n'
-        '# Auto-generated file. Please do not edit\n'
-        '__version__ = %r\n' % VERSION +
-        '__author__ = %r\n' % AUTHOR)
 
-#
-# Choose the default Python3 branch or the code converted by 3to2
-#
+# Meta information
+name = 'smallvectors'
+project = 'smallvectors'
+author = 'Fábio Macêdo Mendes'
+version = open('VERSION').read().strip()
+dirname = os.path.dirname(__file__)
+
+
+# Save version and author to __meta__.py
+with open(os.path.join(dirname, 'src', project, '__meta__.py'), 'w') as F:
+    F.write('__version__ = %r\n__author__ = %r\n' % (version, author))
+
+# Chooses the default Python3 branch or the code converted by 3to2
 PYSRC = 'src' if sys.version_info[0] == 3 else 'py2src'
 
-#
 # Cython stuff (for the future)
-#
 setup_kwds = {}
 if 'PyPy' not in sys.version:
     try:
@@ -34,29 +28,32 @@ if 'PyPy' not in sys.version:
         from Cython.Distutils import build_ext
     except ImportError:
         import warnings
-        warnings.warn('Please install Cython to compile faster versions of FGAme modules')
+        warnings.warn(
+            'Please install Cython to compile faster versions of the '
+            'smallvectors package',
+        )
     else:
         try:
             setup_kwds.update(
-                ext_modules=cythonize('src/generic/*.pyx'),
+                ext_modules=cythonize('src/smallvectors/*.pyx'),
                 cmdclass={'build_ext': build_ext})
         except ValueError:
             pass
 
-#
-# Main configuration script
-#
-setup(
-    name='smallvectors',
-    version=VERSION,
-    description='Efficient linear algebra in low dimensions',
-    author=AUTHOR,
-    author_email='fabiomacedomendes@gmail.com',
-    url='https://github.com/fabiommendes/smallshapes',
-    long_description=open(os.path.join(BASE, 'README.txt')).read(),
 
+setup(
+    # Basic info
+    name=name,
+    version=version,
+    author=author,
+    author_email='fabiomacedomendes@gmail.com',
+    url='',
+    description='A short description for your project.',
+    long_description=open('README.rst').read(),
+
+    # Classifiers (see https://pypi.python.org/pypi?%3Aaction=list_classifiers)
     classifiers=[
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: GNU General Public License (GPL)',
         'Operating System :: POSIX',
@@ -64,10 +61,21 @@ setup(
         'Topic :: Software Development :: Libraries',
     ],
 
-    package_dir={'': PYSRC},
-    packages=setuptools.find_packages(PYSRC),
-    license='GPL',
-    install_requires=['six', 'pygeneric'],
-    zip_safe=False, # Is it me, or zipped eggs are just buggy?
-    **setup_kwds
+    # Packages and depencies
+    package_dir={'': 'src'},
+    packages=find_packages('src'),
+    install_requires=[
+        'six',
+        'pygeneric',
+        'lazytools',
+    ],
+    extras_require={
+        'testing': ['pytest', 'manuel'],
+    },
+
+    # Other configurations
+    zip_safe=False,
+    platforms='any',
+    test_suite='%s.test.test_%s' % (name, name),
+    **setup_kwds,
 )

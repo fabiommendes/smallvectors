@@ -1,8 +1,15 @@
-/build/
-/dist/
-/py2src/
-/__pycache__/
-/.idea/
-/.eggs/
-/.settings/
-/.benchmarks/
+# Cached builds
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.so
+*.dll
+*.egg
+*.egg-info/
+
+# Build directories
+docs/_build/
+build/
+dist/
+py2src/

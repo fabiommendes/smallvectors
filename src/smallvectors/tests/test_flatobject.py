@@ -1,5 +1,6 @@
 import pytest
-from smallvectors.core import Flat, mFlat, FlatView
+from smallvectors.core import mFlat, FlatView
+from smallvectors.core.flat import Flat, mFlat, FlatView
 
 
 @pytest.fixture

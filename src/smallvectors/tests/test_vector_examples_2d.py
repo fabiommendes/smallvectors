@@ -52,13 +52,13 @@ def test_invalid_div_scalar(x):
 # Tests vector API
 #
 def test_rotated_is_new(x):
-    assert x.rotated(0.0) is not x
+    assert x.rotate(0.0) is not x
 
 
 def test_rotated_keeps_norm(x):
     for t in range(20):
         Z1 = x.norm()
-        Z2 = x.rotated(6.28 * t / 20).norm()
+        Z2 = x.rotate(6.28 * t / 20).norm()
         assert abs(Z1 - Z2) < 1e-6, (Z1, Z2)
 
 

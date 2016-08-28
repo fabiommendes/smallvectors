@@ -5,20 +5,31 @@ Abstract arithmetic operations
 from numbers import Number
 from generic import promote_type
 from generic.op import add, sub, mul, truediv, floordiv, Object
-from .smallvectorsbase import ABC, SmallVectorsBase
+from .base import ABC, SmallVectorsBase
 
 
-#
-# Elementwise summation
-#
 class AddElementWise(ABC, Object):
-    """Implements elementwise addition and subtraction"""
+    """
+    Implements elementwise addition and subtraction.
+    """
 
     def __addsame__(self, other):
         return _from_data(self, [x + y for (x, y) in zip(self.flat, other.flat)])
     
     def __subsame__(self, other):
         return _from_data(self, [x - y for (x, y) in zip(self.flat, other.flat)])
+
+
+class MulElementWise(ABC, Object):
+    """
+    Implements elementwise multiplication and division
+    """
+
+    def __mulsame__(self, other):
+        return _from_data(self, [x * y for (x, y) in zip(self.flat, other.flat)])
+
+    def __truedivsame__(self, other):
+        return _from_data(self, [x / y for (x, y) in zip(self.flat, other.flat)])
 
 
 @add.register(AddElementWise, AddElementWise, factory=True)
@@ -32,10 +43,11 @@ def add_elementwise_factory(argtypes, restype):
         return NotImplemented
     if T.shape != S.shape:
         return NotImplemented
-        
-    dtype = promote_type(T.dtype, S.dtype)
+
     def func(u, v):
         return u.convert(dtype) + v.convert(dtype)
+
+    dtype = promote_type(T.dtype, S.dtype)
     return func
 
 
@@ -50,26 +62,12 @@ def sub_elementwise_factory(argtypes, restype):
         return NotImplemented
     elif T.shape != S.shape:
         return NotImplemented
-        
-    dtype = promote_type(T.dtype, S.dtype)
+
     def func(u, v):
         return u.convert(dtype) - v.convert(dtype)
+
+    dtype = promote_type(T.dtype, S.dtype)
     return func
-
-
-#
-# Elementwise multiplication
-#
-class MulElementWise(ABC, Object):
-    """Implements elementwise multiplication and division"""
-
-
-    def __mulsame__(self, other):
-        return _from_data(self, [x * y for (x, y) in zip(self.flat, other.flat)])
-
-
-    def __truedivsame__(self, other):
-        return _from_data(self, [x / y for (x, y) in zip(self.flat, other.flat)])
 
 
 @mul.register(MulElementWise, MulElementWise, factory=True)
@@ -84,9 +82,10 @@ def mul_elementwise_factory(argtypes, restype):
     if T.shape != S.shape:
         return NotImplemented
 
-    dtype = promote_type(T.dtype, S.dtype)
     def func(u, v):
         return u.convert(dtype) * v.convert(dtype)
+
+    dtype = promote_type(T.dtype, S.dtype)
     return func
 
 
@@ -102,17 +101,23 @@ def truediv_elementwise_factory(argtypes, restype):
     elif T.shape != S.shape:
         return NotImplemented
 
-    dtype = promote_type(T.dtype, S.dtype)
     def func(u, v):
         return u.convert(dtype) / v.convert(dtype)
+
+    dtype = promote_type(T.dtype, S.dtype)
     return func
 
 
-#
-# Scalar multiplication
-#
 class MulScalar(ABC, Object):
-    """Implements scalar multiplication and division"""
+    """
+    Implements scalar multiplication and division.
+    """
+
+
+class AddScalar(ABC, Object):
+    """
+    Implements scalar addition and subtraction
+    """
 
 
 @mul.register(MulScalar, Number)
@@ -135,9 +140,6 @@ def floordiv_scalar(u, number):
     return _from_data(u, [x // number for x in u])
 
     
-class AddScalar(ABC, Object):
-    """Implements scalar addition and subtraction"""
-
 @add.register(AddScalar, Number)
 def add_scalar(u, number):
     return _from_data(u, [x + number for x in u])
@@ -158,13 +160,11 @@ def rsub_scalar(number, u):
     return _from_data(u, [number - x for x in u])
 
 
-#
 # Utility functions
-# 
 def _check_scalar(obj, other, op):
     # Fasttrack most common scalar types
     if isinstance(other, (obj.dtype, float, int, Number)):
-        return
+        pass
     
     elif obj.__origin__ is getattr(other, '__origin__', None):
         tname = obj.__origin__.__name__

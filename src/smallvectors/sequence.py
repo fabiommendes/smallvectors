@@ -1,9 +1,6 @@
 class seq(object):
-
-    '''seq objects describe a range of numbers that can be iterated lazyly.
-
-    Examples
-    --------
+    """
+    seq objects describe a range of numbers that can be iterated lazyly.
 
     In the simplest form, it can create iterables using a natural mathematical
     notation
@@ -20,7 +17,7 @@ class seq(object):
     >>> numbers[2]
     3
 
-    '''
+    """
 
     def __init__(self, *args):
         # This function accepts various signatures. Various if's...
@@ -94,8 +91,3 @@ class seq(object):
             while x <= end:
                 yield x
                 x += step
-
-
-if __name__ == '__main__':
-    import doctest
-    doctest.testmod()
