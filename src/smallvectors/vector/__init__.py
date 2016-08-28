@@ -6,6 +6,7 @@ from . import vec_2d as _vec_2d
 from . import vec_3d as _vec_3d
 from . import vec_4d as _vec_4d
 from .direction import Direction
+from .point import *
 
 # Maps dimensions to additional bases
 DIMENSION_BASES.update({

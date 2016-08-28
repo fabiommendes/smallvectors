@@ -1,22 +1,27 @@
 Metadata-Version: 1.1
 Name: smallvectors
 Version: 0.4.6
-Summary: Efficient linear algebra in low dimensions
-Home-page: https://github.com/fabiommendes/smallshapes
+Summary: Linear algebra objects for small dimensions.
+Home-page: http://github.com/fabiommendes/smallvectors/
 Author: Fábio Macêdo Mendes
 Author-email: fabiomacedomendes@gmail.com
-License: GPL
+License: UNKNOWN
 Description: `smallvectors` is a lightweight library that implements linear algebra operations
         in low dimensions. These objects were create to be used in a game engine, but
         may be useful elsewhere.
         
-        Includes:
+        The library has an opt-in process for optimizing code with C-extensions written
+        in Cython. The optimized version of the library is one of the fastest Python
+        packages for low dimensional linear algebra operations.
+        
+        Small vectors supports:
             * Vector, point and direction types
-            * Arbitrary shape matrix types and some specialized matrices
+            * Arbitrary matrices and some specialized ones (square matrices, unitary
+              matrices, rotational matrices, etc).
             * Affine transforms
             * Quaternions
-Platform: UNKNOWN
-Classifier: Development Status :: 3 - Alpha
+Platform: any
+Classifier: Development Status :: 4 - Beta
 Classifier: Intended Audience :: Developers
 Classifier: License :: OSI Approved :: GNU General Public License (GPL)
 Classifier: Operating System :: POSIX

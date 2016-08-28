@@ -1,2 +1,8 @@
 six
 pygeneric
+lazyutils
+
+[dev]
+pytest
+manuel
+sphinx

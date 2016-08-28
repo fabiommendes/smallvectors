@@ -91,7 +91,7 @@ translation vector appended to the rightmost column.
 |1  2  5|
 |3  4  6|
 
-This has some incoveniences. The 2x3 matrix cannot be used to linearly
+This has some inconveniences. The 2x3 matrix cannot be used to linearly
 transform vectors since it does not even have the correct shape. A matrix
 as shown above requires 3D vectors instead of the 2D that the affine
 transform operates. We can however use the following trick: take a (x, y)
@@ -124,3 +124,6 @@ As usual, the affine transformation object can be flattened by the
 
 >>> list(A.flat)
 [1, 2, 5, 3, 4, 6]
+
+.. automodule:: smallvectors.affine
+   :members:

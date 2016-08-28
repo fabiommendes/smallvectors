@@ -22,7 +22,7 @@ PYSRC = 'src' if sys.version_info[0] == 3 else 'py2src'
 
 # Cython stuff (for the future)
 setup_kwds = {}
-if 'PyPy' not in sys.version:
+if 'PyPy' not in sys.version and False:
     try:
         from Cython.Build import cythonize
         from Cython.Distutils import build_ext
@@ -47,8 +47,8 @@ setup(
     version=version,
     author=author,
     author_email='fabiomacedomendes@gmail.com',
-    url='',
-    description='A short description for your project.',
+    url='http://github.com/fabiommendes/smallvectors/',
+    description='Linear algebra objects for small dimensions.',
     long_description=open('README.rst').read(),
 
     # Classifiers (see https://pypi.python.org/pypi?%3Aaction=list_classifiers)
@@ -67,15 +67,18 @@ setup(
     install_requires=[
         'six',
         'pygeneric',
-        'lazytools',
+        'lazyutils',
     ],
     extras_require={
-        'testing': ['pytest', 'manuel'],
+        'dev': [
+            'pytest',
+            'manuel',
+            'sphinx',
+        ],
     },
 
     # Other configurations
     zip_safe=False,
     platforms='any',
-    test_suite='%s.test.test_%s' % (name, name),
     **setup_kwds,
 )

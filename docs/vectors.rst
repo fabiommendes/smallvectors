@@ -1,4 +1,3 @@
-=======
 Vectors
 =======
 
@@ -29,6 +28,16 @@ notation in order to designate the correct vector type
 >>> Vec[2, int](1.5, 2)
 Vec(1, 2)
 
+Reference
+---------
+
+.. autoclass:: smallvectors.Vec
+   :members:
+   :inherited-members:
+
+.. autoclass:: smallvectors.mVec
+   :members:
+
 
 Direction
 =========
@@ -40,9 +49,25 @@ normalization is required for some variable or attribute.
 There is no mutable Direction type since most operations that can be done in a
 unity vector spoils the normalization constraint.
 
+
+Reference
+---------
+
+.. autoclass:: smallvectors.Direction
+   :members:
+
+
 Points
 ======
 
 :mod:`smallvectors` also defines a separate Point type. While vectors are
 quantities with magnitude and direction, Point objects represent directly
 points in space.
+
+
+.. autoclass:: smallvectors.Point
+   :members:
+
+
+.. autoclass:: smallvectors.mPoint
+   :members:

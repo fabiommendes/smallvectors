@@ -30,3 +30,5 @@ Vec(5, 11)
 >>> v * matrix
 Vec(7, 10)
 
+.. automodule:: smallvectors.matrix
+   :members:

@@ -158,7 +158,7 @@ class mVec(VecAny, Mutable):
 
     def iclamp(self, min_length, max_length=None):
         """
-        Like :method:`clamp`, but make changes *INPLACE*.
+        Like :func:`mVec.clamp`, but make changes *INPLACE*.
         """
 
         if max_length is None:

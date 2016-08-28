@@ -1,4 +1,5 @@
-from smallvectors import Immutable, Mutable, mVec, Vec
+from smallvectors.core import Immutable, Mutable
+from .core import mVec, Vec
 from .linear import LinearAny
 
 
