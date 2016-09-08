@@ -1,6 +1,6 @@
 Metadata-Version: 1.1
 Name: smallvectors
-Version: 0.5.0
+Version: 0.6.0
 Summary: Linear algebra objects for small dimensions.
 Home-page: http://github.com/fabiommendes/smallvectors/
 Author: Fábio Macêdo Mendes
@@ -26,4 +26,8 @@ Classifier: Intended Audience :: Developers
 Classifier: License :: OSI Approved :: GNU General Public License (GPL)
 Classifier: Operating System :: POSIX
 Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.3
+Classifier: Programming Language :: Python :: 3.4
+Classifier: Programming Language :: Python :: 3.5
 Classifier: Topic :: Software Development :: Libraries

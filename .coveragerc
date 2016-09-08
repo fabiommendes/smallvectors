@@ -1,3 +1,8 @@
+[run]
+include =
+    src/*
+
+
 [report]
 # Regexes for lines to exclude from consideration
 exclude_lines =
@@ -21,3 +26,8 @@ exclude_lines =
     while False:
 
 ignore_errors = True
+
+
+[paths]
+source =
+    src/

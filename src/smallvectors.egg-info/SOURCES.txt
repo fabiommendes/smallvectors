@@ -6,7 +6,6 @@ README.rst
 VERSION
 requirements.txt
 setup.py
-tasks.py
 py2src/smallvectors/__init__.py
 py2src/smallvectors/affine.py
 py2src/smallvectors/array.py
@@ -70,9 +69,13 @@ src/smallvectors/matrix/mat2x2.py
 src/smallvectors/matrix/mat3x3.py
 src/smallvectors/matrix/rotmat.py
 src/smallvectors/matrix/square.py
+src/smallvectors/tests/__init__.py
+src/smallvectors/tests/abstract.py
 src/smallvectors/tests/test_affine.py
 src/smallvectors/tests/test_arithmetic.py
+src/smallvectors/tests/test_conversion_functions.py
 src/smallvectors/tests/test_core.py
+src/smallvectors/tests/test_documentation.py
 src/smallvectors/tests/test_flatobject.py
 src/smallvectors/tests/test_matrix.py
 src/smallvectors/tests/test_parametric.py
