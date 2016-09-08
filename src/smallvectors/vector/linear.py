@@ -145,7 +145,7 @@ class LinearAny(SmallVectorsBase, AddElementWise, MulScalar):
         deltas = (x - y for (x, y) in zip(self, other))
         return self._sqrt(sum(x * x for x in deltas))
 
-    def lerp(self, other, weight):
+    def lerp(self, other, weight=0.5):
         """
         Linear interpolation between two objects.
 
@@ -168,7 +168,9 @@ class LinearAny(SmallVectorsBase, AddElementWise, MulScalar):
 
     def move(self, *args):
         """
-        An alias to obj.displaced().
+        Displace object by the given coordinates.
+
+        This is equivalent to a vector sum.
         """
 
         if len(args) == 1:

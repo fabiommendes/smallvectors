@@ -68,6 +68,12 @@ class TestClass:
         with pytest.raises(AttributeError):
             obj.not_a_valid_attribute_name = None
 
+    def test_class_is_type(self, obj):
+        assert obj.__class__ == type(obj)
+
+    def test_assert_constructor_respects_subclass(self, cls, obj):
+        assert isinstance(obj, cls)
+
 
 class TestMutability(TestClass):
     """

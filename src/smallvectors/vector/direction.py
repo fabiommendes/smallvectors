@@ -13,13 +13,9 @@ class Direction(Vec):
     __slots__ = ()
 
     def is_null(self):
-        """Always False for Direction objects"""
-
         return False
 
     def is_unity(self, norm=None, tol=1e-6):
-        """Always True for Direction objects"""
-
         if norm is None:
             return True
         else:
@@ -37,9 +33,7 @@ class Direction(Vec):
         else:
             return super().norm_sqr(norm)
 
-    def inormalize(self):
-        """Return a normalize version of vector"""
-
+    def normalize(self):
         return self
 
 
@@ -71,11 +65,11 @@ class Direction2D:
         return new
 
 
-#
 # Direction conversions
-#
 def asdirection(v):
-    """Return the argument as a Direction instance."""
+    """
+    Return the argument as a Direction instance.
+    """
 
     if isinstance(v, Direction):
         return v

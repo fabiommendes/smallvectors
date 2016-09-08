@@ -2,6 +2,7 @@ from math import pi, sqrt
 
 import pytest
 from generic import op
+from random import random as rand
 
 from smallvectors import Vec, mVec, simeq
 from smallvectors.tests import abstract as base
@@ -22,18 +23,52 @@ class VectorBase(base.TestNormedObject, base.TestMutability):
     def null(self):
         return Vec(*(0 for x in self.base_args))
 
+    @pytest.fixture
+    def u(self, args):
+        return self.base_cls(*(rand() for x in args))
+
+    @pytest.fixture
+    def v(self, args):
+        return self.base_cls(*(rand() for x in args))
+
+    def test_conversion_complex(self, unitary):
+        conv = unitary.convert(complex)
+        assert type(conv) is not type(unitary)
+
+    def test_clamp_to_value(self, unitary):
+        assert simeq(unitary.clamp(2), 2 * unitary)
+        assert simeq(unitary.clamp(0.5), 0.5 * unitary)
+
+    def test_clamp_interval(self, unitary):
+        assert unitary.clamp(0.5, 2) == unitary
+
+    def test_clamp_missing_interval(self, unitary):
+        assert simeq(unitary.clamp(2, 3), 2 * unitary)
+        assert simeq(unitary.clamp(0.1, 0.5), 0.5 * unitary)
+
+    def test_lerp(self, u, v):
+        assert simeq(u.lerp(v), v.lerp(u))
+        assert simeq(u.middle(v), u.lerp(v))
+        assert simeq(u.lerp(v, 0), u)
+        assert simeq(u.lerp(v, 1), v)
+
+    def test_middle(self, unitary, null):
+        assert simeq(unitary.middle(null), null.middle(unitary))
+        assert simeq(unitary.middle(null), unitary / 2)
+
     def test_distance(self, unitary, null):
         assert simeq(unitary.distance(unitary), 0)
         assert simeq(unitary.distance(null), 1)
         assert simeq(unitary.distance(-unitary), 2)
 
-    def test_complex_conversion(self, unitary):
-        conv = unitary.convert(complex)
-        assert type(conv) is not type(unitary)
-
     def test_angle(self, unitary):
         assert simeq(unitary.angle(unitary), 0)
         assert simeq(unitary.angle(-unitary), pi)
+
+    def test_vector_norm_defaults_to_euclidean(self, cls, args):
+        vec = cls(*(1 for _ in args))
+        assert simeq(vec.norm(), sqrt(len(args)))
+        assert simeq(abs(vec), sqrt(len(args)))
 
 
 class TestVector2D(VectorBase):
@@ -72,13 +107,6 @@ class TestVector5D(VectorBase):
     base_args = (0.4, 0.4, 0.4, 0.4, 0.6)
 
 
-def test_vector_norm_defaults_to_euclidean(tol):
-    u = Vec(3, 4)
-    assert u.norm() == 5.0
-    assert abs(u.normalize() - Vec(3 / 5, 4 / 5)) < tol
-    assert u.norm() == abs(u)
-
-
 def test_triangular_identity_2D():
     assert_triangular_identity(Vec(1, 2), Vec(3, 4), None)
     assert_triangular_identity(Vec(1, 1), Vec(1, 1), None)
@@ -92,11 +120,6 @@ def test_triangular_identity_3D():
 
 
 # Test Vec type properties
-def test_class_is_type():
-    u = Vec(1, 2)
-    assert u.__class__ == type(u)
-
-
 def test_dispatch():
     assert (Vec[2, float], Vec[2, int]) in op.add
     assert (Vec[2, float], int) in op.mul

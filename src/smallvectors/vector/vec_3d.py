@@ -40,13 +40,20 @@ class Vec3D(VecND):
             raise RuntimeError('invalid index for getitem_simple: %s' % idx)
 
     @classmethod
-    def from_flat(cls, data, copy=True):
-        x, y, z = data
-        return cls._fromcoords_unsafe(x, y, z)
+    def from_flat(cls, data, copy=True, dtype=None, shape=None):
+        if shape is not None and shape != (3,):
+            raise TypeError('Vec3D cannot have a shape different from (3,)')
+        if dtype is None or dtype is cls.dtype:
+            x, y, z = data
+            return cls._fromcoords_unsafe(x, y, z)
+        else:
+            return cls._fromcoords_unsafe(*(convert(x, dtype) for x in data))
 
     @classmethod
-    def from_spheric(cls, radius, phi=0, theta=0):
-        """Create vector from spherical coordinates"""
+    def from_spherical(cls, radius, phi=0, theta=0):
+        """
+        Create vector from spherical coordinates.
+        """
 
         r = radius * cls._sin(phi)
         x = r * cls._cos(theta)
@@ -55,8 +62,10 @@ class Vec3D(VecND):
         return cls(x, y, z)
 
     @classmethod
-    def from_cylindric(cls, radius, theta=0, z=0):
-        """Create vector from cylindric coordinates"""
+    def from_cylindrical(cls, radius, theta=0, z=0):
+        """
+        Create vector from cylindrical coordinates.
+        """
 
         x = radius * cls._cos(theta)
         y = radius * cls._sin(theta)
