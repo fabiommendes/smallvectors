@@ -26,9 +26,7 @@ def hasview():
     return HasView()()
 
 
-#
 # Unit tests
-#
 def test_view_getitem(hasview):
     assert hasview.flat[0] == 1
 
@@ -39,7 +37,3 @@ def test_view_getslice(hasview):
 
 def test_view_getslice_step(hasview):
     assert hasview.flat[0::2] == [1, 3]
-
-
-if __name__ == '__main__':
-    pytest.main('test_flatobject.py -q')

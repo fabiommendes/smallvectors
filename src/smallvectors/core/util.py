@@ -46,3 +46,13 @@ def get_sibling_classes(cls):
     types = (x for x in objects if isinstance(x, type))
     siblings = [T for T in types if issubclass(T, parent)]
     return siblings
+
+
+def mutating(func):
+    """
+    Decorator that marks functions for suitable only for mutable objects
+    """
+
+    func.__mutating__ = True
+
+    return func

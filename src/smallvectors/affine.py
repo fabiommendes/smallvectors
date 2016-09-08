@@ -2,7 +2,7 @@ import numbers
 
 from smallvectors import Mat, Vec, asmatrix
 from smallvectors.core import SmallVectorsBase, AddElementWise
-from smallvectors.tools import flatten, dtype
+from smallvectors.utils import flatten, dtype
 
 
 class Affine(SmallVectorsBase, AddElementWise):
@@ -20,6 +20,7 @@ class Affine(SmallVectorsBase, AddElementWise):
     """
 
     __parameters__ = (int, type)
+    __slots__ = ('flat',)
 
     @classmethod
     def __preparenamespace__(cls, params):

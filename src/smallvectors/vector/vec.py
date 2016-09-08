@@ -1,4 +1,5 @@
-from smallvectors.core import Immutable, Mutable, Normed, AddElementWise
+from smallvectors.core import Immutable, Normed, AddElementWise
+from smallvectors.core.mutability import Mutable, Immutable
 from smallvectors.vector.linear import LinearAny
 
 __all__ = ['mVec', 'Vec', 'asvector', 'asmvector', 'asavector']
@@ -9,6 +10,8 @@ class VecAny(LinearAny, Normed):
     """
     Base class for Vec and mVec
     """
+
+    __slots__ = ()
 
     def angle(self, other):
         """
@@ -72,13 +75,11 @@ class VecAny(LinearAny, Normed):
 
     def norm(self, which=None):
         """
-        Returns the norm of a vector
+        Return the vector's norm.
         """
 
         if which is None or which == 'euclidean':
-            return self._sqrt(self.norm_sqr())
-        elif which == 'minkowski':
-            return max(map(abs, self))
+            return self._sqrt(sum(x * x for x in self))
         elif which == 'max':
             return max(map(abs, self))
         elif which == 'minkowski':
@@ -88,7 +89,7 @@ class VecAny(LinearAny, Normed):
 
     def norm_sqr(self, which=None):
         """
-        Returns the squared norm of a vector.
+        Return the squared norm.
         """
 
         if which is None:
@@ -101,7 +102,7 @@ class VecAny(LinearAny, Normed):
         Rotate vector by the given rotation object.
         
         The rotation can be specified in several ways which are dimension 
-        dependent. All vectors can be irotate by rotation matrices in any
+        dependent. All vectors can be rotated by rotation matrices in any
         dimension. 
     
         In 2D, rotation can be a simple number that specifies the 

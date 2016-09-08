@@ -1,6 +1,5 @@
 # -*- coding: utf8 -*-
 import os
-
 import sys
 from setuptools import setup, find_packages
 
@@ -14,8 +13,10 @@ dirname = os.path.dirname(__file__)
 
 
 # Save version and author to __meta__.py
-with open(os.path.join(dirname, 'src', project, '__meta__.py'), 'w') as F:
-    F.write('__version__ = %r\n__author__ = %r\n' % (version, author))
+with open(os.path.join(dirname, 'src', project, '__meta__.py'), 'w', encoding='utf-8') as F:
+    F.write('#-*- coding: utf-8 -*-\n'
+            '__version__ = %r\n'
+            '__author__ = %r\n' % (version, author))
 
 # Chooses the default Python3 branch or the code converted by 3to2
 PYSRC = 'src' if sys.version_info[0] == 3 else 'py2src'
@@ -58,6 +59,10 @@ setup(
         'License :: OSI Approved :: GNU General Public License (GPL)',
         'Operating System :: POSIX',
         'Programming Language :: Python',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.3',
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
         'Topic :: Software Development :: Libraries',
     ],
 
@@ -66,7 +71,7 @@ setup(
     packages=find_packages('src'),
     install_requires=[
         'six',
-        'pygeneric',
+        'pygeneric>=0.5.4',
         'lazyutils',
     ],
     extras_require={
@@ -80,5 +85,5 @@ setup(
     # Other configurations
     zip_safe=False,
     platforms='any',
-    **setup_kwds,
+    **setup_kwds
 )

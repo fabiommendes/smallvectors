@@ -1,5 +1,5 @@
 import pytest
-from smallvectors.tools import shape, commonbase
+from smallvectors.utils import shape, commonbase
 
 
 def test_shape_function():

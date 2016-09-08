@@ -4,11 +4,13 @@ from smallvectors.matrix import Mat
 
 
 class Unitary(Mat):
-    """Base class for all unitary matrices (e.g., rotation matrices).
+    """
+    Base class for all unitary matrices (e.g., rotation matrices).
     
     The conjugate of an unitary matrix is equal to its inverse. Unitary matrices
-    are immutable since almost any modification to the matrix would break 
-    unitarity. """
+    are immutable since almost any modification to the matrix would break the
+    unitary property.
+    """
 
     __slots__ = ()
 
@@ -22,7 +24,7 @@ class Unitary(Mat):
         return super().__preparebases__(params)
 
     def inv(self):
-        return self.conjugate()
+        return self.H
 
     def det(self):
         return 1.0

@@ -1,6 +1,6 @@
 from generic import promote_type
 
-from smallvectors.tools import dtype as _dtype
+from smallvectors.utils import dtype as _dtype
 from smallvectors.vector import asvector
 
 
@@ -8,6 +8,8 @@ class SquareMixin:
     """
     Methods specific to square matrices
     """
+
+    __slots__ = ()
 
     @classmethod
     def from_diag(cls, diag):

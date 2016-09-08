@@ -45,7 +45,7 @@ src/smallvectors/array.py
 src/smallvectors/functions.py
 src/smallvectors/quaternion.py
 src/smallvectors/sequence.py
-src/smallvectors/tools.py
+src/smallvectors/utils.py
 src/smallvectors/vecarray.py
 src/smallvectors.egg-info/PKG-INFO
 src/smallvectors.egg-info/SOURCES.txt
@@ -58,14 +58,16 @@ src/smallvectors/core/arithmetic.py
 src/smallvectors/core/base.py
 src/smallvectors/core/flat.py
 src/smallvectors/core/mixins.py
+src/smallvectors/core/mutability.py
 src/smallvectors/core/normed.py
+src/smallvectors/core/sequentiable.py
 src/smallvectors/core/util.py
 src/smallvectors/extra/__init__.py
 src/smallvectors/extra/util.py
 src/smallvectors/matrix/__init__.py
 src/smallvectors/matrix/base.py
 src/smallvectors/matrix/mat2x2.py
-src/smallvectors/matrix/mat3x3mixin.py
+src/smallvectors/matrix/mat3x3.py
 src/smallvectors/matrix/rotmat.py
 src/smallvectors/matrix/square.py
 src/smallvectors/tests/test_affine.py

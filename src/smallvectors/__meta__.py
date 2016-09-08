@@ -1,2 +1,3 @@
-__version__ = '0.4.6'
+#-*- coding: utf-8 -*-
+__version__ = '0.5.0'
 __author__ = 'Fábio Macêdo Mendes'

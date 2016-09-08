@@ -13,6 +13,8 @@ class Vec4D(VecND):
     creation.
     """
 
+    __slots__ = ('_x', '_y', '_z', '_w')
+
     def __init__(self, x, y, z, w):
         dtype = self.dtype
         self._x = convert(x, dtype)
@@ -47,7 +49,7 @@ class Vec4D(VecND):
         return cls._fromcoords_unsafe(x, y, z, w)
 
     @classmethod
-    def fromspheric(cls, radius, phi=0, theta=0):
+    def from_spheric(cls, radius, phi=0, theta=0):
         """Create vector from spherical coordinates"""
 
         r = radius * cls._sin(phi)
@@ -65,11 +67,12 @@ class Vec4D(VecND):
         return cls(x, y, z)
 
     @classmethod
-    def _fromcoords_unsafe(cls, x, y, z):
+    def _fromcoords_unsafe(cls, x, y, z, w):
         new = object.__new__(cls)
         new._x = x
         new._y = y
         new._z = z
+        new._w = w
         return new
 
     @property

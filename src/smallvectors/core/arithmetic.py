@@ -1,17 +1,16 @@
-"""
-Abstract arithmetic operations
-"""
-
 from numbers import Number
 from generic import promote_type
 from generic.op import add, sub, mul, truediv, floordiv, Object
-from .base import ABC, SmallVectorsBase
+from smallvectors.core import ABC
+from smallvectors.core.base import SmallVectorsBase
 
 
 class AddElementWise(ABC, Object):
     """
     Implements elementwise addition and subtraction.
     """
+
+    __slots__ = ()
 
     def __addsame__(self, other):
         return _from_data(self, [x + y for (x, y) in zip(self.flat, other.flat)])
@@ -24,6 +23,8 @@ class MulElementWise(ABC, Object):
     """
     Implements elementwise multiplication and division
     """
+
+    __slots__ = ()
 
     def __mulsame__(self, other):
         return _from_data(self, [x * y for (x, y) in zip(self.flat, other.flat)])
@@ -113,11 +114,15 @@ class MulScalar(ABC, Object):
     Implements scalar multiplication and division.
     """
 
+    __slots__ = ()
+
 
 class AddScalar(ABC, Object):
     """
     Implements scalar addition and subtraction
     """
+
+    __slots__ = ()
 
 
 @mul.register(MulScalar, Number)

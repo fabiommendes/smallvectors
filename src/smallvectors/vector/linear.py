@@ -1,6 +1,6 @@
-from smallvectors import SmallVectorsBase, MulScalar, AddElementWise, \
-    Mutable
-from smallvectors.tools import dtype as _dtype
+from smallvectors import SmallVectorsBase, MulScalar, AddElementWise
+from smallvectors.core.mutability import Mutable
+from smallvectors.utils import dtype as _dtype
 from smallvectors.vector import DIMENSION_BASES
 
 
@@ -76,6 +76,9 @@ class LinearAny(SmallVectorsBase, AddElementWise, MulScalar):
 
     def __point__(self, v):
         return NotImplemented
+
+    def __len__(self):
+        return self.size
 
     # Representation and conversions
     def as_vector(self):

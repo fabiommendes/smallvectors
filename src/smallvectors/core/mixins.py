@@ -2,7 +2,7 @@ import cmath
 import math
 from numbers import Number
 
-from generic.parametric import ABC
+from smallvectors.core import ABC
 
 
 class MathFunctionsMixin(ABC):
@@ -13,6 +13,8 @@ class MathFunctionsMixin(ABC):
     math module so subclasses can reuse implementations with their own math
     functions (maybe using numpy, sympy, cmath, etc).
     """
+
+    __slots__ = ()
 
     # Mathematical functions
     _sqrt = math.sqrt
@@ -26,6 +28,15 @@ class MathFunctionsMixin(ABC):
     _float = float
     _floating = float
     _number = (float, int, Number)
+
+    # Smallvector types
+    _vec = None
+    _mvec = None
+    _point = None
+    _mpoint = None
+    _direction = None
+    _mat = None
+    _affine = None
 
 
 class ComplexMathFunctionsMixin(MathFunctionsMixin):

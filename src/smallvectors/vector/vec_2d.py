@@ -1,6 +1,6 @@
 from generic import convert, InexactError, get_conversion
 
-from smallvectors.core import Mutable
+from smallvectors.core.mutability import Mutable
 from smallvectors.vector.vec import mVec, Vec, _assure_mutable_set_coord
 from smallvectors.vector.vec_nd import VecND, Vec1D
 
@@ -86,7 +86,7 @@ class Vec2D(VecND):
         return self * (1.0 / other)
 
     # 2D specific API
-    def rotate_axis(self, axis, theta):
+    def rotate_at(self, theta, axis):
         """
         Rotate vector around given axis by the angle theta.
         """
@@ -134,17 +134,17 @@ class Vec2D(VecND):
 
         return self.norm(), self._atan2(self.y, self.x)
 
-    def perp(self, ccw=True):
+    def perp(self, cw=False):
         """
         Return the counterclockwise perpendicular vector.
 
-        If ccw is False, do the rotation in the clockwise direction.
+        If cw is True, do the rotation in the clockwise direction.
         """
 
-        if ccw:
-            return self._fromcoords_unsafe(-self.y, self.x)
-        else:
+        if cw:
             return self._fromcoords_unsafe(self.y, -self.x)
+        else:
+            return self._fromcoords_unsafe(-self.y, self.x)
 
     # Performance overrides
     def distance(self, other):

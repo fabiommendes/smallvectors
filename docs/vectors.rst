@@ -10,7 +10,6 @@ As the name suggest, :mod:`smallvectors` is a linear algebra library for
 manipulating vectors (and other objects) of low dimensionality. The most basic
 type is a vector:
 
->>> from smallvectors import Vec
 >>> v = Vec(1, 2)
 >>> u = Vec(3, 4)
 >>> u + v
@@ -20,7 +19,6 @@ As with most elements in the :mod:`smallvectors` package, vectors have the
 default immutable, and an mutable implementation. Both derive from a VecAny
 base class:
 
->>> from smallvectors import Vec, VecAny, mVec
 >>> isinstance(u, mVec)
 False
 >>> isinstance(v, VecAny)

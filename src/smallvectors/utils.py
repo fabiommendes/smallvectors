@@ -1,5 +1,7 @@
 import itertools
+
 from generic import promote
+# noinspection PyUnresolvedReferences
 from lazyutils import lazy
 
 
@@ -7,7 +9,7 @@ def flatten(L, ndim=None):
     """
     Flatten the given list of lists and return a tuple of (data, *dimensions)
     """
-    
+
     flat = list(L)
     indices = [len(flat)]
     while ndim != 1:
@@ -17,7 +19,7 @@ def flatten(L, ndim=None):
             if ndim is None:
                 return (flat,) + tuple(indices)
             raise ValueError('expected more levels in data')
-        
+
         sizes = set(map(len, flat))
         if len(sizes) > 1:
             raise ValueError('inconsistent shapes')
@@ -25,9 +27,9 @@ def flatten(L, ndim=None):
         flat = list(itertools.chain(*flat))
         if ndim is not None:
             ndim -= 1
-        
+
     return (flat,) + tuple(indices)
-    
+
 
 def commonbase(T1, *args):
     """
@@ -52,7 +54,7 @@ def commonbase(T1, *args):
                 if issubclass(tt, common):
                     common = tt
                 break
-    
+
         if len(args) == 1:
             return common
         else:
@@ -112,3 +114,21 @@ def sign(x):
         return -1
     else:
         return 0
+
+
+def simeq(u, v, tol=1e-6):
+    """
+    True if u and v are almost equal
+    """
+
+    try:
+        return u.almost_equal(v)
+    except AttributeError:
+        try:
+            return v.almost_equal(u)
+        except AttributeError:
+            pass
+    delta = tol = 1
+    if u == v:
+        return True
+    return abs(u - v) <= tol

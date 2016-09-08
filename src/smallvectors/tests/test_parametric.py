@@ -1,6 +1,6 @@
-import pytest
 from generic.tests.test_parametric import *
-from smallvectors import Vec, SmallVectorsBase, SmallVectorsMeta
+
+from smallvectors import Vec, SmallVectorsBase
 from smallvectors.vector.linear import LinearAny
 
 del A, B
@@ -9,6 +9,7 @@ del A, B
 @pytest.fixture
 def A():
     return LinearAny
+
 
 @pytest.fixture
 def B():
@@ -22,9 +23,9 @@ def test_partial_parameters(A, B):
 
 
 def test_correct_metatypes(A, B):
-    assert type(A) == SmallVectorsMeta
-    assert type(B) == SmallVectorsMeta
-    assert type(B[2, float]) == SmallVectorsMeta
+    assert type(A) == ParametricMeta
+    assert type(B) == ParametricMeta
+    assert type(B[2, float]) == ParametricMeta
 
 
 def test_abstract_and_orign_has_ndim(A, B):
@@ -52,7 +53,3 @@ def test_has_dtype(A, B):
     assert A.dtype is None
     assert B.dtype is None
     assert B[2, float].dtype == float
-
-
-if __name__ == '__main__':
-    pytest.main('test_parametric.py -q')

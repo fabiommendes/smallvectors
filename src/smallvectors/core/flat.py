@@ -2,10 +2,11 @@ import collections
 from typing import Any
 
 from generic import convert
-from generic.parametric import ABC, Immutable
+from generic.parametric import Mutable, Immutable
 from generic.util import tname
 
-from smallvectors.tools import dtype as _dtype, lazy
+from smallvectors.utils import dtype as _dtype, lazy
+from smallvectors.core import ABC
 
 
 class Flat(collections.Sequence):
@@ -131,10 +132,10 @@ class Flatable(ABC):
     Base class for all objects that have a .flat attribute
     """
 
+    __slots__ = ()
     _nullvalue = 0
     __concrete__ = NotImplemented
     __origin__ = NotImplemented
-    __flat__ = NotImplemented
     size = NotImplemented
     dtype = NotImplemented
     shape = NotImplemented
@@ -187,13 +188,20 @@ class Flatable(ABC):
         null = self._nullvalue
         return all(x == null for x in self.flat)
 
-    @lazy
+    @property
     def flat(self):
         return FlatView(self)
 
     @property
     def _flatclass(self):
         return Flat if isinstance(self, Immutable) else mFlat
+
+    @classmethod
+    def __flat__(cls, data, copy):
+        if issubclass(cls, Mutable):
+            return mFlat(data, copy)
+        else:
+            return Flat(data, copy)
 
     def __flatiter__(self):
         raise NotImplementedError(

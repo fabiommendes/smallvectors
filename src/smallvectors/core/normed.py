@@ -1,17 +1,9 @@
 import abc
 
 from smallvectors.core.mixins import MathFunctionsMixin
-from .base import ABC, Immutable
-
-
-def mutating(func):
-    """
-    Decorator that marks functions for suitable only for mutable objects
-    """
-
-    func.__mutating__ = True
-
-    return func
+from smallvectors.core.util import mutating
+from smallvectors.core.mutability import Immutable
+from smallvectors.core import ABC
 
 
 class Normed(MathFunctionsMixin, ABC):

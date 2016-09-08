@@ -1,9 +1,22 @@
+import pytest
 from smallvectors import Mat, mMat, Rotation2d, Vec
 from smallvectors.tests.test_arithmetic import *
+from smallvectors.tests import abstract as base
 
-#
+
+class MatrixBase(base.TestMutability):
+    base_cls = Mat
+    mutable_cls = mMat
+
+    @pytest.fixture
+    def unitary(self):
+        return Mat(*self.base_args)
+
+
+class TestMat2x2(MatrixBase):
+    base_args = [1, 0], [0, 1]
+
 # Arithmetic tests
-#
 Mat2 = Mat[2, 2, int]
 make_arithmetic_fixtures(
     x=Mat2([1, 2], [3, 4]),
@@ -20,9 +33,7 @@ make_arithmetic_fixtures(
 )
 
 
-#
 # Basic matrix construction
-#
 def test_make_square():
     assert Mat([1, 2], [3, 4]).shape == (2, 2)
 
@@ -75,9 +86,7 @@ def test_fromcolrows_sqr():
     assert M1 == M2.T
 
 
-#
 # Basic properties and behaviors
-#
 def test_equal():
     M1 = Mat([1, 2], [3, 4])
     M2 = Mat([1, 2], [3, 4])
@@ -106,9 +115,7 @@ def test_flat2x2_redo():
     assert M1, Mat[2, 2].from_flat(M1.flat)
 
 
-#
 # Rows and cols manipulations
-#
 def test_cols():
     M1 = Mat([1, 2], [3, 4], [5, 6])
     assert list(M1.cols()) == [Vec(1, 3, 5), Vec(2, 4, 6)]
@@ -206,9 +213,7 @@ def test_widthdiag():
     assert M1.drop_diag() == M2
 
 
-#
 # Linear algebra operations
-#
 def test_eig2():
     M1 = Mat([1, 0], [0, 2])
     assert M1.eigenpairs() == [(2.0, (0.0, 1.0)),
@@ -235,9 +240,7 @@ def test_inv2():
     assert M1 * M1.inv() == M2
 
 
-#
 # Matrix mutation
-#
 def test_setvalue():
     M1 = mMat([1, 2], [3, 4])
     M1[0] = [1, 1]
@@ -294,9 +297,7 @@ def test_swapcols():
     assert M1 == M2
 
 
-#
 # Regression testings
-#
 def test_rotation_matrix():
     assert Rotation2d(0) == [[1, 0], [0, 1]]
 

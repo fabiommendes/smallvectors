@@ -1,7 +1,6 @@
 from smallvectors import Vec
 from smallvectors.tests.test_arithmetic import *
 
-
 make_arithmetic_fixtures(
     zero=Vec(0, 0),
     x=Vec(1, 2), x_alts=[[1, 2], (1, 2)],
@@ -48,9 +47,8 @@ def test_invalid_div_scalar(x):
     with pytest.raises(TypeError):
         y = 1 / x
 
-#
+
 # Tests vector API
-#
 def test_rotated_is_new(x):
     assert x.rotate(0.0) is not x
 

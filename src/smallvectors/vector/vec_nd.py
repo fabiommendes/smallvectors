@@ -10,6 +10,8 @@ class VecND(LinearAny, Normed):
     Base class with overrides for any dimension
     """
 
+    __slots__ = ()
+
     @property
     def flat(self):
         return FlatView(self)

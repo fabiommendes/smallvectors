@@ -2,12 +2,12 @@ from generic import overload, convert
 from generic.op import mul
 
 from smallvectors import Vec, asvector
-from smallvectors.core import SmallVectorsBase, Immutable, Mutable, \
-    AddElementWise
+from smallvectors.core import SmallVectorsBase, AddElementWise
+from smallvectors.core.mutability import Mutable, Immutable
 from smallvectors.matrix.mat2x2 import Mat2x2Mixin
 from smallvectors.matrix.mat3x3 import Mat3x3Mixin
 from smallvectors.matrix.square import SquareMixin
-from smallvectors.tools import flatten, dtype as _dtype
+from smallvectors.utils import flatten, dtype as _dtype
 from smallvectors.vector.vec import VecAny
 
 __all__ = [
@@ -31,18 +31,25 @@ class MatAny(SmallVectorsBase, AddElementWise):
     @classmethod
     def __preparenamespace__(cls, params):
         ns = SmallVectorsBase.__preparenamespace__(params)
+        try:
+            m, n, dtype = params
+        except ValueError:
+            pass
+        else:
+            if (m, n) not in [(2, 2), (3, 3)]:
+                ns['__slots__'] = 'flat'
         return ns
 
     @classmethod
     def __preparebases__(cls, params):
         N, M, dtype = params
-        if (isinstance(N, int) and isinstance(M, int)):
+        if isinstance(N, int) and isinstance(M, int):
             if N == M == 2:
-                return (Mat2x2Mixin, cls)
+                return Mat2x2Mixin, cls
             elif N == M == 3:
-                return (Mat3x3Mixin, cls)
+                return Mat3x3Mixin, cls
             elif M == N:
-                return (SquareMixin, cls)
+                return SquareMixin, cls
         return (cls,)
 
     @staticmethod
@@ -118,9 +125,7 @@ class MatAny(SmallVectorsBase, AddElementWise):
             raise ValueError(msg)
         return cls.from_flat(data, dtype=dtype)
 
-    #
     # Attributes
-    #
     @property
     def T(self):
         """
@@ -128,10 +133,7 @@ class MatAny(SmallVectorsBase, AddElementWise):
         """
         return self.transpose()
 
-    #
-    # Return row Vecs or column Vecs
-    #
-    def asdict(self):
+    def as_dict(self):
         """
         Return matrix data as a map from indexes to (non-null)
         values.
@@ -146,23 +148,19 @@ class MatAny(SmallVectorsBase, AddElementWise):
                     D[i, j] = value
         return D
 
-    #
     # Iterators
-    #
     def items(self):
         """
         Iterator over ((i, j), value) pairs.
 
-        Example
-        -------
-
-        >>> matrix = Mat([1, 2], [3, 4])
-        >>> for ((i, j), k) in matrix.items():
-        ...     print('M[%s, %s] = %s' % (i, j, k))
-        M[0, 0] = 1
-        M[0, 1] = 2
-        M[1, 0] = 3
-        M[1, 1] = 4
+        Example:
+            >>> matrix = Mat([1, 2], [3, 4])
+            >>> for ((i, j), k) in matrix.items():
+            ...     print('M[%s, %s] = %s' % (i, j, k))
+            M[0, 0] = 1
+            M[0, 1] = 2
+            M[1, 0] = 3
+            M[1, 1] = 4
         """
 
         N = self.nrows
@@ -175,23 +173,18 @@ class MatAny(SmallVectorsBase, AddElementWise):
         """
         Iterator over columns of matrix
 
-        See also
-        --------
+        See also:
+            :meth:`rows`: iterate over the rows of a matrix.
 
-        :meth:`rows`: iterate over the rows of a matrix.
+        Example:
+            >>> M = Mat([1, 2],
+            ...         [3, 4])
 
-        Example
-        -------
+            >>> list(M.cols())
+            [Vec(1, 3), Vec(2, 4)]
 
-        >>> M = Mat([1, 2],
-        ...         [3, 4])
-
-        >>> list(M.cols())
-        [Vec(1, 3), Vec(2, 4)]
-
-        >>> list(M.rows())
-        [Vec(1, 2), Vec(3, 4)]
-
+            >>> list(M.rows())
+            [Vec(1, 2), Vec(3, 4)]
         """
 
         M = self.ncols
@@ -316,9 +309,7 @@ class MatAny(SmallVectorsBase, AddElementWise):
         else:
             return self.__origin__[M, N, self.dtype].from_cols(self.rows())
 
-    #
     # Shape transformations
-    #
     def __raise_badshape(self, data, s1):
         fmt = data, s1, self.nrows, self.nrows
         raise ValueError('incompatible %s size: %s with %s x %s matrix' % fmt)
@@ -431,9 +422,7 @@ class MatAny(SmallVectorsBase, AddElementWise):
         T = self.__origin__[len(data), self.ncols, self.dtype]
         return T.from_rows(data)
 
-    #
     # Magic methods
-    #
     def __repr__(self):
         data = ', '.join([repr(list(x)) for x in self])
         return '%s(%s)' % (self.__origin__.__name__, data)
@@ -472,9 +461,7 @@ class MatAny(SmallVectorsBase, AddElementWise):
         elif isinstance(idx, int):
             return self.row(idx)
 
-    #
     # Arithmetic operations
-    #
     def __mul__(self, other):
         if isinstance(other, (Vec, tuple, list)):
             other = asvector(other)
@@ -557,6 +544,8 @@ class Mat(MatAny, Immutable):
     A immutable matrix type.
     """
 
+    __slots__ = ()
+
 
 class mMat(MatAny, Mutable):
     """
@@ -638,9 +627,7 @@ class mMat(MatAny, Mutable):
             self.flat[start:start + M] = [convert(x, dtype) for x in value]
 
 
-#
 # Overloads and promotions
-#
 @overload(mul, (Mat, Vec))
 def mul_matrix_Vec(M, v):
     return NotImplemented
@@ -651,9 +638,7 @@ def mul_Vec_matrix(v, M):
     return NotImplemented
 
 
-#
 # Matrices conversions
-#   
 def asmatrix(m):
     """
     Return object as an immutable matrix.
