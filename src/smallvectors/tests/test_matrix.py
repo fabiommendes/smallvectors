@@ -92,7 +92,17 @@ class MatrixBase(base.TestMutability,
         assert M2.shape == (m, n + 1)
         assert M2[0, n] == col[0]
 
+
 class SquareBase(MatrixBase):
+    @pytest.fixture
+    def N(self, shape):
+        return shape[0]
+
+    @pytest.fixture
+    def I(self, cls, shape):
+        N = shape[0]
+        return cls[N, N].from_diag([1] * N)
+
     def test_shape_is_square(self, obj, shape):
         m, n = obj.shape
         cls = type(obj)
@@ -103,6 +113,37 @@ class SquareBase(MatrixBase):
 
     def test_shape_is_not_changed_by_transposition(self, M1):
         assert M1.shape == M1.T.shape
+
+    def test_create_from_diag(self, N):
+        diag = [1] * N
+        M = Mat[N, N].from_diag(diag)
+        assert M * M == M
+
+    def test_trace_of_identity(self, I, N):
+        return I.trace() == N
+
+    def test_identity_diag(self, I, N):
+        return list(I.diag()) == [1] * N
+
+    def test_identity_set_null_diag(self, I, N, zero):
+        assert I.set_diag([0] * N) == zero
+
+    def test_identity_drop_diag(self, I, zero):
+        assert I.drop_diag() == zero
+
+    @pytest.mark.skip(reason='not implemented yet')
+    def test_identity_has_unity_eigenvalues(self, I, N):
+        assert I.eigenvalues() == [1] * N
+
+    def test_identity_is_inverse(self, I):
+        assert I.inv() == I
+
+    def test_identity_solve(self, I, N):
+        b = Vec(*range(1, N + 1))
+        assert I.solve(b) == b
+        assert I.solve_jacobi(b) == b
+        assert I.solve_gauss(b) == b
+        assert I.solve_triangular(b) == b
 
 
 class TestMat2x2(SquareBase):

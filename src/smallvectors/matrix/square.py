@@ -93,10 +93,10 @@ class SquareMixin:
 
     def eigenvectors(self):
         """
-        Return the matrix of normalize column eigenvectors.
+        Return the matrix of normalized column eigenvectors.
         """
 
-        return self.fromcols([vec for (_, vec) in self.eigenpairs()])
+        return self.from_cols([vec for (_, vec) in self.eigenpairs()])
 
     def eigenpairs(self):
         """
@@ -159,7 +159,7 @@ class SquareMixin:
         b = asvector(b)
         x = b * 0
         D = self.from_diag([1.0 / x for x in self.diag()])
-        R = self.droppingdiag()
+        R = self.drop_diag()
 
         for _ in range(maxiter):
             x, old = D * (b - R * x), x

@@ -4,6 +4,20 @@ from smallvectors.core import ABC
 from smallvectors.utils import shape as _shape
 
 
+def slicerange(slice, obj):
+    """
+    Return a range from a slice.
+    """
+
+    start = slice.start or 0
+    stop = slice.stop
+    step = slice.step or 1
+
+    if stop is None:
+        return range(start, len(obj), step)
+    return range(start, stop, step)
+
+
 class Sequentiable(ABC):
     """
     Base class for all objects that support iteration.
@@ -56,8 +70,7 @@ class Sequentiable(ABC):
                 return self[size + key]
 
         elif isinstance(key, slice):
-            start, stop, step = key
-            return [self[i] for i in range(start, stop, step)]
+            return [self[i] for i in slicerange(key, self)]
 
         else:
             raise TypeError('invalid index: %r' % key)

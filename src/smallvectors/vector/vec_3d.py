@@ -29,7 +29,7 @@ class Vec3D(VecND):
         yield self._y
         yield self._z
 
-    def __getitem__(self, idx):
+    def __getitem_simple__(self, idx):
         if idx == 0:
             return self._x
         elif idx == 1:
@@ -37,7 +37,7 @@ class Vec3D(VecND):
         elif idx == 2:
             return self._z
         else:
-            raise RuntimeError('invalid index for getitem_simple: %s' % idx)
+            raise RuntimeError('invalid integer index: %s' % idx)
 
     @classmethod
     def from_flat(cls, data, copy=True, dtype=None, shape=None):
