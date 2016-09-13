@@ -1,13 +1,11 @@
 from .__meta__ import __version__, __author__
 from .core import *
-from .sequence import seq
+from .functions import *
+from .utils import *
 from .vector import *
 from .matrix import *
 from .affine import *
-from .utils import *
 from .vecarray import *
-from .functions import *
-
 
 # Late binding of smallvectors types to MathFunctionsMixin
 MathFunctionsMixin._vec = Vec
