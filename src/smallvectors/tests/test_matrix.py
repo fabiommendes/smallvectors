@@ -131,9 +131,8 @@ class SquareBase(MatrixBase):
     def test_identity_drop_diag(self, I, zero):
         assert I.drop_diag() == zero
 
-    @pytest.mark.skip(reason='not implemented yet')
-    def test_identity_has_unity_eigenvalues(self, I, N):
-        assert I.eigenvalues() == [1] * N
+    # def test_identity_has_unity_eigenvalues(self, I, N):
+    #     assert I.eigenvalues() == [1] * N
 
     def test_identity_is_inverse(self, I):
         assert I.inv() == I
