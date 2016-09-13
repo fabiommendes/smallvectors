@@ -22,7 +22,33 @@ class setter_descriptor:
         return cls
 
 
-class Mutable(parametric.Mutable):
+class MutabilityAPI:
+    """
+    Common API for Mutable and Immutable classes.
+    """
+
+    __slots__ = ()
+
+    def __getstate__(self):
+        raise NotImplementedError
+
+    def is_mutable(self):
+        raise NotImplementedError
+
+    def is_immutable(self):
+        raise NotImplementedError
+
+    def mutable(self):
+        raise NotImplementedError
+
+    def immutable(self):
+        raise NotImplementedError
+
+    def copy(self):
+        raise NotImplementedError
+
+
+class Mutable(parametric.Mutable, MutabilityAPI):
     """
     Base class for all mutable types.
     """
@@ -67,7 +93,7 @@ class Mutable(parametric.Mutable):
         return NotImplemented
 
 
-class Immutable(parametric.Immutable):
+class Immutable(parametric.Immutable, MutabilityAPI):
     """
     Base class for all immutable types.
     """

@@ -17,7 +17,8 @@ class Vec2D(VecND):
     __slots__ = ('_x', '_y')
 
     @classmethod
-    def from_flat(cls, data, copy=True):
+    def from_flat(cls, data, copy=True, dtype=None, shape=None):
+        cls._check_params(shape, dtype)
         x, y = data
         return cls._fromcoords_unsafe(x, y)
 
@@ -102,7 +103,7 @@ class Vec2D(VecND):
         Rotate vector by an angle theta around origin.
         """
 
-        if isinstance(theta, self._rotmatrix):
+        if isinstance(theta, self._rotmat):
             return theta * self
 
         cls = type(self)

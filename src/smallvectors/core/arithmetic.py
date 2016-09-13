@@ -1,6 +1,8 @@
 from numbers import Number
-from generic import promote_type
+
+from generic import promote_type, convert
 from generic.op import add, sub, mul, truediv, floordiv, Object
+
 from smallvectors.core import ABC
 from smallvectors.core.base import SmallVectorsBase
 
@@ -13,10 +15,30 @@ class AddElementWise(ABC, Object):
     __slots__ = ()
 
     def __addsame__(self, other):
-        return _from_data(self, [x + y for (x, y) in zip(self.flat, other.flat)])
-    
+        return fromflat(self,
+                        [x + y for (x, y) in zip(self.flat, other.flat)])
+
     def __subsame__(self, other):
-        return _from_data(self, [x - y for (x, y) in zip(self.flat, other.flat)])
+        return fromflat(self,
+                        [x - y for (x, y) in zip(self.flat, other.flat)])
+
+
+class mAddElementWise(AddElementWise):
+    """
+    Inplace addition operators
+    """
+
+    def __iadd__(self, other):
+        other = convert(other, type(self))
+        for i, x in other.flat:
+            self.flat[i] += x
+        return self
+
+    def __isub__(self, other):
+        other = convert(other, type(self))
+        for i, x in other.flat:
+            self.flat[i] -= x
+        return self
 
 
 class MulElementWise(ABC, Object):
@@ -27,10 +49,36 @@ class MulElementWise(ABC, Object):
     __slots__ = ()
 
     def __mulsame__(self, other):
-        return _from_data(self, [x * y for (x, y) in zip(self.flat, other.flat)])
+        return fromflat(self,
+                        [x * y for (x, y) in zip(self.flat, other.flat)])
 
     def __truedivsame__(self, other):
-        return _from_data(self, [x / y for (x, y) in zip(self.flat, other.flat)])
+        return fromflat(self,
+                        [x / y for (x, y) in zip(self.flat, other.flat)])
+
+
+class mMulElementWise(MulElementWise):
+    """
+    Inplace multiplication operators.
+    """
+
+    def __imul__(self, other):
+        other = convert(other, type(self))
+        for i, x in other.flat:
+            self.flat[i] *= x
+        return self
+
+    def __itruediv__(self, other):
+        other = convert(other, type(self))
+        for i, x in other.flat:
+            self.flat[i] /= x
+        return self
+
+    def __ifloordiv__(self, other):
+        other = convert(other, type(self))
+        for i, x in other.flat:
+            self.flat[i] /= x
+        return self
 
 
 @add.register(AddElementWise, AddElementWise, factory=True)
@@ -117,6 +165,29 @@ class MulScalar(ABC, Object):
     __slots__ = ()
 
 
+class mMulScalar(MulScalar):
+    """
+    Inplace multiplication.
+    """
+
+    __slots__ = ()
+
+    def __imul__(self, other):
+        other = convert(other, self.dtype)
+        for i, x in enumerate(self.flat):
+            self.flat[i] *= x
+
+    def __itruediv__(self, other):
+        other = convert(other, self.dtype)
+        for i, x in enumerate(self.flat):
+            self.flat[i] /= x
+
+    def __ifloordiv__(self, other):
+        other = convert(other, self.dtype)
+        for i, x in enumerate(self.flat):
+            self.flat[i] //= x
+
+
 class AddScalar(ABC, Object):
     """
     Implements scalar addition and subtraction
@@ -125,56 +196,75 @@ class AddScalar(ABC, Object):
     __slots__ = ()
 
 
+class mAddScalar(AddScalar):
+    """
+    Inplace addition.
+    """
+
+    __slots__ = ()
+
+    def __iadd__(self, other):
+        other = convert(other, self.dtype)
+        for i, x in enumerate(self.flat):
+            self.flat[i] += x
+
+    def __isub__(self, other):
+        other = convert(other, self.dtype)
+        for i, x in enumerate(self.flat):
+            self.flat[i] -= x
+
+
 @mul.register(MulScalar, Number)
 def mul_scalar(u, number):
-    return _from_data(u, [x * number for x in u])
+    return fromflat(u, [x * number for x in u])
 
 
 @mul.register(Number, MulScalar)
 def rmul_scalar(number, u):
-    return _from_data(u, [number * x for x in u])
+    return fromflat(u, [number * x for x in u])
 
 
 @truediv.register(MulScalar, Number)
 def truediv_scalar(u, number):
-    return _from_data(u, [x / number for x in u])
+    return fromflat(u, [x / number for x in u])
 
 
 @floordiv.register(MulScalar, Number)
 def floordiv_scalar(u, number):
-    return _from_data(u, [x // number for x in u])
+    return fromflat(u, [x // number for x in u])
 
-    
+
 @add.register(AddScalar, Number)
 def add_scalar(u, number):
-    return _from_data(u, [x + number for x in u])
+    return fromflat(u, [x + number for x in u])
 
 
 @add.register(Number, AddScalar)
 def radd_scalar(number, u):
-    return _from_data(u, [number + x for x in u])
+    return fromflat(u, [number + x for x in u])
 
 
 @sub.register(AddScalar, Number)
 def sub_scalar(u, number):
-    return _from_data(u, [x - number for x in u])
+    return fromflat(u, [x - number for x in u])
 
 
 @sub.register(Number, AddScalar)
 def rsub_scalar(number, u):
-    return _from_data(u, [number - x for x in u])
+    return fromflat(u, [number - x for x in u])
 
 
 # Utility functions
 def _check_scalar(obj, other, op):
-    # Fasttrack most common scalar types
+    # Fast-track most common scalar types
     if isinstance(other, (obj.dtype, float, int, Number)):
         pass
-    
+
     elif obj.__origin__ is getattr(other, '__origin__', None):
         tname = obj.__origin__.__name__
-        raise TypeError('%s instances only accept scalar multiplication' % tname)
-    
+        raise TypeError(
+            '%s instances only accept scalar multiplication' % tname)
+
     elif isinstance(other, (list, tuple, SmallVectorsBase)):
         return op(obj, other)
 
@@ -192,7 +282,7 @@ def _check_vector(obj, other, op):
         return op(obj, other)
 
 
-def _from_data(obj, data):
+def fromflat(obj, data):
     if isinstance(data[0], obj.dtype):
         return type(obj).from_flat(data, copy=False)
     else:

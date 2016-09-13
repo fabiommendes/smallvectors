@@ -77,7 +77,7 @@ represented differently. First, if we are only concerned about the
 coordinates of the transform, we can obtain them as a matrix with the
 translation vector appended to the rightmost column.
 
->>> print(A.asmatrix())
+>>> print(A.as_matrix())
 |1  2  5|
 |3  4  6|
 

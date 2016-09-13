@@ -2,15 +2,15 @@ from generic import promote_type
 
 from smallvectors.utils import dtype as _dtype
 from smallvectors.vector import asvector
+from smallvectors.matrix.base import MatAny
 
 
-class SquareMixin:
+class MatSquare(MatAny):
     """
     Methods specific to square matrices
     """
 
     __slots__ = ()
-    _mat = _mmat = _identity = _rotmatix = None
 
     @classmethod
     def from_diag(cls, diag):
@@ -82,7 +82,10 @@ class SquareMixin:
         Return a tuple of (eigenvalues, eigenvectors).
         """
 
-        return (self.eigval(), self.eigvec())
+        pairs = self.eigenpairs()
+        vals = [val for val, vec in pairs]
+        vecs = [vec for val, vec in pairs]
+        return vals, vecs
 
     def eigenvalues(self):
         """
@@ -103,7 +106,7 @@ class SquareMixin:
         Return a list of (eigenvalue, eigenvector) pairs.
         """
 
-        return list(zip(self.eigval(), self.eigvec().cols()))
+        raise NotImplementedError
 
     def inv(self):
         """

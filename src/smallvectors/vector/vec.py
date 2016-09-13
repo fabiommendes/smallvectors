@@ -1,4 +1,4 @@
-from smallvectors.core import Immutable, Normed, AddElementWise
+from smallvectors.core import Normed, mAddElementWise, mMulScalar
 from smallvectors.core.mutability import Mutable, Immutable
 from smallvectors.vector.linear import LinearAny
 
@@ -21,7 +21,7 @@ class VecAny(LinearAny, Normed):
         try:
             Z = other.norm()
         except AttributeError:
-            other = self.vector_type(other)
+            other = self._vec(other)
             Z = other.norm()
 
         cos_t = self.dot(other) / (self.norm() * Z)
@@ -32,14 +32,14 @@ class VecAny(LinearAny, Normed):
         Reflect vector around the given direction.
         """
 
-        return self - 2 * (self - self.project(direction))
+        return self - 2 * (self - self.projection(direction))
 
     def projection(self, direction):
         """
         Returns the projection vector in the given direction
         """
 
-        direction = self.to_direction(direction)
+        direction = self.as_direction()
         return self.dot(direction) * direction
 
     def clamp(self, min_length, max_length=None):
@@ -109,7 +109,7 @@ class VecAny(LinearAny, Normed):
         angle of rotation.   
         """
 
-        if isinstance(rotation, self._rotmatrix):
+        if isinstance(rotation, self._rotmat):
             return rotation * self
 
         tname = type(self).__name__
@@ -126,7 +126,7 @@ class Vec(VecAny, Immutable):
     __slots__ = ()
 
 
-class mVec(VecAny, Mutable):
+class mVec(VecAny, mAddElementWise, mMulScalar, Mutable):
     """
     A mutable vector.
     """
@@ -134,19 +134,21 @@ class mVec(VecAny, Mutable):
     __slots__ = ()
 
     def irotate(self, rotation):
-        """Similar to obj.rotate(...), but make changes *INPLACE*"""
+        """
+        Similar to obj.rotate(...), but make changes *INPLACE*:
+        """
 
         value = self.rotate(rotation)
         self[:] = value
 
     def imove(self, *args):
         """
-        Similar to obj.move(...), but make changes *INPLACE*
+        Similar to obj.move(...), but make changes *INPLACE*.
         """
 
         if len(args) == 1:
             args = args[0]
-        self += args
+        self.__iadd__(args)
 
     def ireflect(self, direction):
         """
@@ -162,7 +164,7 @@ class mVec(VecAny, Mutable):
 
         if max_length is None:
             ratio = min_length / self.norm()
-            self *= ratio
+            self.__imul__(ratio)
 
         norm = new_norm = self.norm()
         if norm > max_length:
@@ -171,7 +173,7 @@ class mVec(VecAny, Mutable):
             new_norm = min_length
 
         if new_norm != norm:
-            self *= new_norm / norm
+            self.__imul__(new_norm / norm)
 
 
 # Helper functions
@@ -182,7 +184,9 @@ def _assure_mutable_set_coord(obj):
 
 # Vector conversions
 def asvector(obj):
-    """Return object as an immutable vector"""
+    """
+    Return object as an immutable vector.
+    """
 
     if isinstance(obj, Vec):
         return obj
@@ -191,7 +195,9 @@ def asvector(obj):
 
 
 def asmvector(obj):
-    """Return object as a mutable vector"""
+    """
+    Return object as a mutable vector.
+    """
 
     if isinstance(obj, mVec):
         return obj
@@ -200,9 +206,11 @@ def asmvector(obj):
 
 
 def asavector(obj):
-    """Return object as a mutable or immutable vector.
+    """
+    Return object as a mutable or immutable vector.
     
-    Non-Vec objects are converted to immutable vectors."""
+    Non-Vec objects are converted to immutable vectors.
+    """
 
     if isinstance(obj, VecAny):
         return obj

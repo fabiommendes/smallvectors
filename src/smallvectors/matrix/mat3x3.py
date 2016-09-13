@@ -1,10 +1,10 @@
 from generic import promote_type
 
 from smallvectors import Vec
-from smallvectors.matrix.square import SquareMixin
+from smallvectors.matrix.square import MatSquare
 
 
-class Mat3x3Mixin(SquareMixin):
+class Mat3x3(MatSquare):
     __slots__ = ('flat',)
 
     def det(self):

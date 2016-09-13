@@ -70,7 +70,7 @@ class Affine(SmallVectorsBase, AddElementWise):
         return '%s(%s)' % (name, ', '.join(data))
 
     def __str__(self):
-        lines = str(self.asmatrix()).splitlines()
+        lines = str(self.as_matrix()).splitlines()
         for i, line in list(enumerate(lines)):
             pre, _, pos = line.rpartition(' ')
             lines[i] = (pre.strip(), pos.lstrip())
@@ -108,25 +108,27 @@ class Affine(SmallVectorsBase, AddElementWise):
 
     A, b = linear, translation
 
-    #
     # Data representation
-    #
-    def asmatrix(self):
-        """Return a minimum matricial representation of the affine
-        transformation"""
+    def as_matrix(self):
+        """
+        Return a minimum representation of the affine transformation as a
+        rectangular matrix.
+        """
 
         return self.A.append_col(self.b)
 
     def asaugmented(self):
-        """Return the augmented matrix representation of the affine transform.
+        """
+        Return the augmented matrix representation of the affine transform.
         The augmented matrix operates linearly in one dimension greater than
         the original transform. The trick is to append 1 to the last component
         of a vector in order to mimick the same results of the affine
-        transformation using strictly linear operations."""
+        transformation using strictly linear operations.
+        """
 
         bottom = [0] * (self.dim + 1)
         bottom[-1] = 1
-        return self.asmatrix().append_row(bottom)
+        return self.as_matrix().append_row(bottom)
 
     # Behaves somewhat as a tuple of (matrix, vector). Useful for extracting
     # both of these components in the same line.
@@ -224,18 +226,3 @@ class Similarity(Affine):
             except AttributeError:
                 return obj.affine_transform(self)
 
-
-if __name__ == '__main__':
-    import doctest
-
-    doctest.testmod(optionflags=doctest.REPORT_ONLY_FIRST_FAILURE)
-
-    T1 = Affine([[1, 2], [0, 1]], [3, -4])
-    T2 = Affine([[1, 2], [0, 1]], [0, 0])
-    M2 = T2.A
-    v = Vec(1, 2)
-    print(T1 * T2)
-    print(T1 * M2)
-    print((T1 * T2) * v)
-    print(T1 * (T2 * v))
-    print(T1 * (M2 * v))

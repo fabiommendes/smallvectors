@@ -1,14 +1,14 @@
 from generic import convert
 
 from smallvectors import FlatView, Vec
-from smallvectors.matrix.square import SquareMixin
+from smallvectors.matrix.square import MatSquare
 
 
-class Mat2x2Mixin(SquareMixin):
+class Mat2x2(MatSquare):
     __slots__ = ('_a', '_b', '_c', '_d')
 
     @classmethod
-    def from_flat(cls, data, copy=True, dtype=None):
+    def from_flat(cls, data, copy=True, dtype=None, shape=None):
         if cls.__concrete__ and dtype is None:
             a, b, c, d = data
             dtype = cls.dtype
@@ -18,7 +18,7 @@ class Mat2x2Mixin(SquareMixin):
             new._c = convert(c, dtype)
             new._d = convert(d, dtype)
             return new
-        return super(Mat2x2Mixin, cls).from_flat(data, copy=copy, dtype=dtype)
+        return super(Mat2x2, cls).from_flat(data, copy=copy, dtype=dtype)
 
     @property
     def flat(self):

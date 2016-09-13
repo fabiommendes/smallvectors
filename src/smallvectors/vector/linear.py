@@ -97,14 +97,14 @@ class LinearAny(SmallVectorsBase, AddElementWise, MulScalar):
 
     def as_point(self):
         """
-        Returns a copy of object as a point
+        Returns a copy of object as a point.
         """
 
         return self.__point__(*self)
 
     def copy(self, x=None, y=None, z=None, w=None, **kwds):
         """
-        Return a copy possibly overriding some components
+        Return a copy possibly overriding some components.
         """
 
         data = list(self)
@@ -161,7 +161,7 @@ class LinearAny(SmallVectorsBase, AddElementWise, MulScalar):
 
     def middle(self, other):
         """
-        The midpoint to `other`. The same as ``obj.lerp(other, 0.5)``
+        The midpoint to `other`. The same as ``obj.lerp(other, 0.5)``.
         """
 
         return (self + other) / 2

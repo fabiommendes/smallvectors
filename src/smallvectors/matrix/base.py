@@ -4,9 +4,6 @@ from generic.op import mul
 from smallvectors import Vec, asvector
 from smallvectors.core import SmallVectorsBase, AddElementWise
 from smallvectors.core.mutability import Mutable, Immutable
-from smallvectors.matrix.mat2x2 import Mat2x2Mixin
-from smallvectors.matrix.mat3x3 import Mat3x3Mixin
-from smallvectors.matrix.square import SquareMixin
 from smallvectors.utils import flatten, dtype as _dtype
 
 __all__ = [
@@ -19,7 +16,6 @@ __all__ = [
 number = (float, int)
 
 
-# noinspection PyPropertyAccess,PyMissingConstructor,PyUnresolvedReferences
 class MatAny(SmallVectorsBase, AddElementWise):
     """
     Base class for mutable and immutable matrix types
@@ -28,6 +24,23 @@ class MatAny(SmallVectorsBase, AddElementWise):
     __slots__ = ()
     __parameters__ = (int, int, type)
     nrows = ncols = None
+    _square_base = None
+    _mat2x2_base = None
+    _mat3x3_base = None
+
+    @property
+    def T(self):
+        """
+        Matrix transpose.
+        """
+        return self.transpose()
+
+    @property
+    def H(self):
+        """
+        Hermitian transpose.
+        """
+        return self.transpose().conjugate()
 
     @classmethod
     def __preparenamespace__(cls, params):
@@ -41,16 +54,19 @@ class MatAny(SmallVectorsBase, AddElementWise):
                 ns['__slots__'] = 'flat'
         return ns
 
+    # noinspection PyUnresolvedReferences
     @classmethod
     def __preparebases__(cls, params):
         N, M, dtype = params
+
         if isinstance(N, int) and isinstance(M, int):
             if N == M == 2:
-                return Mat2x2Mixin, cls
+                return cls._mat2x2_base, cls
             elif N == M == 3:
-                return Mat3x3Mixin, cls
+                return cls._mat3x3_base, cls
             elif M == N:
-                return SquareMixin, cls
+                return cls._square_base, cls
+
         return cls,
 
     @staticmethod
@@ -61,17 +77,10 @@ class MatAny(SmallVectorsBase, AddElementWise):
         else:
             cls.nrows = cls.ncols = None
 
-    # Constructors
     @classmethod
     def __abstract_new__(cls, *args, dtype=None):
         flat, nrows, ncols = flatten(args, 2)
         return cls[nrows, ncols].from_flat(flat)
-
-    def __init__(self, *args):
-        flat, N, M = flatten(args, 2)
-        self.flat = self.__flat__(flat, copy=False)
-        if N != self.nrows or M != self.ncols:
-            raise ValueError('data has an invalid shape: %s' % repr((N, M)))
 
     @classmethod
     def from_dict(cls, D):
@@ -124,13 +133,124 @@ class MatAny(SmallVectorsBase, AddElementWise):
             raise ValueError(msg)
         return cls.from_flat(data, dtype=dtype)
 
-    # Attributes
-    @property
-    def T(self):
-        """
-        Matrix transpose.
-        """
-        return self.transpose()
+    # noinspection PyPropertyAccess,PyUnresolvedReferences
+    def __init__(self, *args):
+        flat, N, M = flatten(args, 2)
+        self.flat = self.__flat__(flat, copy=False)
+        if N != self.nrows or M != self.ncols:
+            raise ValueError('data has an invalid shape: %s' % repr((N, M)))
+
+    def __repr__(self):
+        data = ', '.join([repr(list(x)) for x in self])
+        return '%s(%s)' % (self.__origin__.__name__, data)
+
+    def __str__(self):
+        def fmt(x):
+            if isinstance(x, float):
+                return ('%.3f' % x).rstrip('0').rstrip('.')
+            else:
+                return repr(x)
+
+        N, M = self.shape
+        data = list(map(fmt, self.flat))
+        cols = [data[i::M] for i in range(M)]
+        sizes = [max(map(len, col)) for col in cols]
+        cols = [[x.rjust(k) for x in col] for (col, k) in zip(cols, sizes)]
+        lines = ['|%s|' % '  '.join(line) for line in zip(*cols)]
+        return '\n'.join(lines)
+
+    def __len__(self):
+        return self.nrows
+
+    def __iter__(self):
+        N, M = self.shape
+        data = self.flat
+        start = 0
+        for _ in range(N):
+            yield asvector(data[start:start + M])
+            start += M
+
+    def __getitem__(self, idx):
+        if isinstance(idx, tuple):
+            i, j = idx
+            return self.flat[i * self.ncols + j]
+
+        elif isinstance(idx, int):
+            return self.row(idx)
+
+    # Arithmetic operations
+    def __mul__(self, other):
+        if isinstance(other, (Vec, tuple, list)):
+            other = asvector(other)
+            return asvector([u.dot(other) for u in self.rows()])
+
+        elif isinstance(other, number):
+            return self.from_flat([x * other for x in self.flat], copy=False)
+
+        elif isinstance(other, Mat):
+            cols = list(other.cols())
+            rows = list(self.rows())
+            data = sum([[u.dot(v) for u in cols] for v in rows], [])
+            cls = self.__origin__[len(rows), len(cols), _dtype(data)]
+            return cls.from_flat(data, copy=False)
+
+        else:
+            return NotImplemented
+
+    def __rmul__(self, other):
+        if isinstance(other, number):
+            return self.from_flat([x * other for x in self.flat], copy=False)
+        else:
+            other = asvector(other)
+            return asvector([u.dot(other) for u in self.cols()])
+
+    def __div__(self, other):
+        if isinstance(other, number):
+            return self.from_flat(x / other for x in self.flat)
+        else:
+            return NotImplemented
+
+    def __truediv__(self, other):
+        if isinstance(other, number):
+            return self.from_flat(x / other for x in self.flat)
+        else:
+            return NotImplemented
+
+    def __floordiv__(self, other):
+        if isinstance(other, number):
+            return self.from_flat(x // other for x in self.flat)
+        else:
+            return NotImplemented
+
+    def __add__(self, other):
+        try:
+            return self.from_flat(x + y for (x, y) in self._zip_other(other))
+        except NotImplementedError:
+            return NotImplemented
+
+    def __radd__(self, other):
+        try:
+            return self.from_flat(y + x for (x, y) in self._zip_other(other))
+        except NotImplementedError:
+            return NotImplemented
+
+    def __sub__(self, other):
+        try:
+            return self.from_flat(x - y for (x, y) in self._zip_other(other))
+        except NotImplementedError:
+            return NotImplemented
+
+    def __rsub__(self, other):
+        try:
+            return self.from_flat(y - x for (x, y) in self._zip_other(other))
+        except NotImplementedError:
+            return NotImplemented
+
+    def __neg__(self):
+        return self.from_flat(-x for x in self.flat)
+
+    def __nonzero__(self):
+        return True
 
     def as_dict(self):
         """
@@ -354,8 +474,7 @@ class MatAny(SmallVectorsBase, AddElementWise):
             if index is None:
                 cols.extend(data.cols())
             else:
-                # noinspection PyTypeChecker
-                cols = cols[:index] + list(data.cols) + cols[index:]
+                cols = cols[:index] + list(data.cols()) + cols[index:]
             M += len(data)
 
         else:
@@ -367,16 +486,15 @@ class MatAny(SmallVectorsBase, AddElementWise):
                 cols.insert(index, list(data))
             M += 1
 
-        # FIXME: infer correct dtype
         T = self.__origin__[N, M, self.dtype]
         return T.from_cols(cols)
 
     def drop_col(self, idx=-1):
         """
-        Drops column in the given index.
-
         Return a pair (matrix, col) with the new matrix with the extra column
-        removed
+        removed.
+
+        If no index is given, drops the last column.
         """
 
         M, N = self.shape
@@ -389,6 +507,8 @@ class MatAny(SmallVectorsBase, AddElementWise):
         """
         Return a pair (matrix, row) with the new matrix with the extra row
         removed.
+
+        If no index is given, drops the last row.
         """
 
         M, N = self.shape
@@ -418,89 +538,6 @@ class MatAny(SmallVectorsBase, AddElementWise):
         T = self.__origin__[len(data), self.ncols, self.dtype]
         return T.from_rows(data)
 
-    # Magic methods
-    def __repr__(self):
-        data = ', '.join([repr(list(x)) for x in self])
-        return '%s(%s)' % (self.__origin__.__name__, data)
-
-    def __str__(self):
-        def fmt(x):
-            if isinstance(x, float):
-                return ('%.3f' % x).rstrip('0').rstrip('.')
-            else:
-                return repr(x)
-
-        N, M = self.shape
-        data = list(map(fmt, self.flat))
-        cols = [data[i::M] for i in range(M)]
-        sizes = [max(map(len, col)) for col in cols]
-        cols = [[x.rjust(k) for x in col] for (col, k) in zip(cols, sizes)]
-        lines = ['|%s|' % '  '.join(line) for line in zip(*cols)]
-        return '\n'.join(lines)
-
-    def __len__(self):
-        return self.nrows
-
-    def __iter__(self):
-        N, M = self.shape
-        data = self.flat
-        start = 0
-        for _ in range(N):
-            yield asvector(data[start:start + M])
-            start += M
-
-    def __getitem__(self, idx):
-        if isinstance(idx, tuple):
-            i, j = idx
-            return self.flat[i * self.ncols + j]
-
-        elif isinstance(idx, int):
-            return self.row(idx)
-
-    # Arithmetic operations
-    def __mul__(self, other):
-        if isinstance(other, (Vec, tuple, list)):
-            other = asvector(other)
-            return asvector([u.dot(other) for u in self.rows()])
-
-        elif isinstance(other, number):
-            return self.from_flat([x * other for x in self.flat], copy=False)
-
-        elif isinstance(other, Mat):
-            cols = list(other.cols())
-            rows = list(self.rows())
-            data = sum([[u.dot(v) for u in cols] for v in rows], [])
-            cls = self.__origin__[len(rows), len(cols), _dtype(data)]
-            return cls.from_flat(data, copy=False)
-
-        else:
-            return NotImplemented
-
-    def __rmul__(self, other):
-        if isinstance(other, number):
-            return self.from_flat([x * other for x in self.flat], copy=False)
-        else:
-            other = asvector(other)
-            return asvector([u.dot(other) for u in self.cols()])
-
-    def __div__(self, other):
-        if isinstance(other, number):
-            return self.from_flat(x / other for x in self.flat)
-        else:
-            return NotImplemented
-
-    def __truediv__(self, other):
-        if isinstance(other, number):
-            return self.from_flat(x / other for x in self.flat)
-        else:
-            return NotImplemented
-
-    def __floordiv__(self, other):
-        if isinstance(other, number):
-            return self.from_flat(x // other for x in self.flat)
-        else:
-            return NotImplemented
-
     def _zip_other(self, other):
         """
         Auxiliary function that zip the flat iterator of both operands if
@@ -517,36 +554,6 @@ class MatAny(SmallVectorsBase, AddElementWise):
             raise ValueError(msg)
 
         return zip(self.flat, other.flat)
-
-    def __add__(self, other):
-        try:
-            return self.from_flat(x + y for (x, y) in self._zip_other(other))
-        except NotImplementedError:
-            return NotImplemented
-
-    def __radd__(self, other):
-        try:
-            return self.from_flat(y + x for (x, y) in self._zip_other(other))
-        except NotImplementedError:
-            return NotImplemented
-
-    def __sub__(self, other):
-        try:
-            return self.from_flat(x - y for (x, y) in self._zip_other(other))
-        except NotImplementedError:
-            return NotImplemented
-
-    def __rsub__(self, other):
-        try:
-            return self.from_flat(y - x for (x, y) in self._zip_other(other))
-        except NotImplementedError:
-            return NotImplemented
-
-    def __neg__(self):
-        return self.from_flat(-x for x in self.flat)
-
-    def __nonzero__(self):
-        return True
 
 
 class Mat(MatAny, Immutable):

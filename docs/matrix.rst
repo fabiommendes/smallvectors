@@ -51,4 +51,4 @@ Useful functions
 ----------------
 
 .. automodule:: smallvectors.matrix
-   :members: asmatrix, asamatrix, asmmatrix
+   :members: as_matrix, asamatrix, asmmatrix

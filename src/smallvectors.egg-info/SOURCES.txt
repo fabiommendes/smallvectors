@@ -42,8 +42,6 @@ src/smallvectors/__meta__.py
 src/smallvectors/affine.py
 src/smallvectors/array.py
 src/smallvectors/functions.py
-src/smallvectors/quaternion.py
-src/smallvectors/sequence.py
 src/smallvectors/utils.py
 src/smallvectors/vecarray.py
 src/smallvectors.egg-info/PKG-INFO
@@ -71,8 +69,9 @@ src/smallvectors/matrix/rotmat.py
 src/smallvectors/matrix/square.py
 src/smallvectors/tests/__init__.py
 src/smallvectors/tests/abstract.py
+src/smallvectors/tests/arithmetic.py
+src/smallvectors/tests/base.py
 src/smallvectors/tests/test_affine.py
-src/smallvectors/tests/test_arithmetic.py
 src/smallvectors/tests/test_conversion_functions.py
 src/smallvectors/tests/test_core.py
 src/smallvectors/tests/test_documentation.py
@@ -81,7 +80,6 @@ src/smallvectors/tests/test_matrix.py
 src/smallvectors/tests/test_parametric.py
 src/smallvectors/tests/test_tools.py
 src/smallvectors/tests/test_vector.py
-src/smallvectors/tests/test_vector_examples_2d.py
 src/smallvectors/vector/__init__.py
 src/smallvectors/vector/direction.py
 src/smallvectors/vector/linear.py

@@ -15,29 +15,18 @@ class Vec3D(VecND):
 
     __slots__ = ('_x', '_y', '_z')
 
-    def __init__(self, x, y, z):
-        dtype = self.dtype
-        self._x = convert(x, dtype)
-        self._y = convert(y, dtype)
-        self._z = convert(z, dtype)
+    @property
+    def z(self):
+        return self._z
 
-    def __len__(self):
-        return 3
+    @z.setter
+    def z(self, value):
+        _assure_mutable_set_coord(value)
+        self._z = value
 
-    def __iter__(self):
-        yield self._x
-        yield self._y
-        yield self._z
-
-    def __getitem_simple__(self, idx):
-        if idx == 0:
-            return self._x
-        elif idx == 1:
-            return self._y
-        elif idx == 2:
-            return self._z
-        else:
-            raise RuntimeError('invalid integer index: %s' % idx)
+    x = x0 = Vec2D.x
+    y = x1 = Vec2D.y
+    x3 = z
 
     @classmethod
     def from_flat(cls, data, copy=True, dtype=None, shape=None):
@@ -45,9 +34,9 @@ class Vec3D(VecND):
             raise TypeError('Vec3D cannot have a shape different from (3,)')
         if dtype is None or dtype is cls.dtype:
             x, y, z = data
-            return cls._fromcoords_unsafe(x, y, z)
+            return cls._from_coords_unsafe(x, y, z)
         else:
-            return cls._fromcoords_unsafe(*(convert(x, dtype) for x in data))
+            return cls._from_coords_unsafe(*(convert(x, dtype) for x in data))
 
     @classmethod
     def from_spherical(cls, radius, phi=0, theta=0):
@@ -72,25 +61,36 @@ class Vec3D(VecND):
         return cls(x, y, z)
 
     @classmethod
-    def _fromcoords_unsafe(cls, x, y, z):
+    def _from_coords_unsafe(cls, x, y, z):
         new = object.__new__(cls)
         new._x = x
         new._y = y
         new._z = z
         return new
 
-    @property
-    def z(self):
-        return self._z
+    def __init__(self, x, y, z):
+        dtype = self.dtype
+        self._x = convert(x, dtype)
+        self._y = convert(y, dtype)
+        self._z = convert(z, dtype)
 
-    @z.setter
-    def z(self, value):
-        _assure_mutable_set_coord(value)
-        self._z = value
+    def __len__(self):
+        return 3
 
-    x = x0 = Vec2D.x
-    y = x1 = Vec2D.y
-    x3 = z
+    def __iter__(self):
+        yield self._x
+        yield self._y
+        yield self._z
+
+    def __getitem_simple__(self, idx):
+        if idx == 0:
+            return self._x
+        elif idx == 1:
+            return self._y
+        elif idx == 2:
+            return self._z
+        else:
+            raise RuntimeError('invalid integer index: %s' % idx)
 
     def cross(self, other):
         """

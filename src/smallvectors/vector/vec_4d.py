@@ -15,6 +15,35 @@ class Vec4D(VecND):
 
     __slots__ = ('_x', '_y', '_z', '_w')
 
+    @property
+    def w(self):
+        return self._w
+
+    @w.setter
+    def w(self, value):
+        _assure_mutable_set_coord(value)
+        self._w = value
+
+    x = x0 = Vec3D.x
+    y = x1 = Vec3D.y
+    z = x2 = Vec3D.z
+    x3 = w
+
+    @classmethod
+    def from_flat(cls, data, copy=True, dtype=None, shape=None):
+        cls._check_params(shape, dtype)
+        x, y, z, w = data
+        return cls._from_coords_unsafe(x, y, z, w)
+
+    @classmethod
+    def _from_coords_unsafe(cls, x, y, z, w):
+        new = object.__new__(cls)
+        new._x = x
+        new._y = y
+        new._z = z
+        new._w = w
+        return new
+
     def __init__(self, x, y, z, w):
         dtype = self.dtype
         self._x = convert(x, dtype)
@@ -42,49 +71,3 @@ class Vec4D(VecND):
             return self._w
         else:
             raise RuntimeError('invalid index for getitem_simple: %s' % idx)
-
-    @classmethod
-    def from_flat(cls, data, copy=True):
-        x, y, z, w = data
-        return cls._fromcoords_unsafe(x, y, z, w)
-
-    @classmethod
-    def from_spheric(cls, radius, phi=0, theta=0):
-        """Create vector from spherical coordinates"""
-
-        r = radius * cls._sin(phi)
-        x = r * cls._cos(theta)
-        y = r * cls._sin(theta)
-        z = r * cls._cos(phi)
-        return cls(x, y, z)
-
-    @classmethod
-    def fromcylindric(cls, radius, theta=0, z=0):
-        """Create vector from cylindric coordinates"""
-
-        x = radius * cls._cos(theta)
-        y = radius * cls._sin(theta)
-        return cls(x, y, z)
-
-    @classmethod
-    def _fromcoords_unsafe(cls, x, y, z, w):
-        new = object.__new__(cls)
-        new._x = x
-        new._y = y
-        new._z = z
-        new._w = w
-        return new
-
-    @property
-    def w(self):
-        return self._w
-
-    @w.setter
-    def w(self, value):
-        _assure_mutable_set_coord(value)
-        self._w = value
-
-    x = x0 = Vec3D.x
-    y = x1 = Vec3D.y
-    z = x2 = Vec3D.z
-    x3 = w

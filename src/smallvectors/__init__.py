@@ -14,6 +14,7 @@ MathFunctionsMixin._point = Point
 MathFunctionsMixin._mpoint = mPoint
 MathFunctionsMixin._mat = Mat
 MathFunctionsMixin._mmat = mMat
+MathFunctionsMixin._rotmat = MatAny
 MathFunctionsMixin._rotation2D = Rotation2d
 MathFunctionsMixin._rotation3D = Rotation3d
 MathFunctionsMixin._affine = Affine

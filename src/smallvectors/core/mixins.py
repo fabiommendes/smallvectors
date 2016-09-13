@@ -36,7 +36,10 @@ class MathFunctionsMixin(ABC):
     _mpoint = None
     _direction = None
     _mat = None
+    _mmat = None
+    _rotmat = None
     _affine = None
+    _identity = None
 
 
 class ComplexMathFunctionsMixin(MathFunctionsMixin):

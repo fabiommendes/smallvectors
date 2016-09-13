@@ -6,3 +6,4 @@ lazyutils
 pytest
 manuel
 sphinx
+python-boilerplate

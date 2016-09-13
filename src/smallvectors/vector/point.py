@@ -1,4 +1,3 @@
-from smallvectors.core import Immutable
 from smallvectors.core.mutability import Mutable, Immutable
 from smallvectors.vector.linear import LinearAny
 from smallvectors.vector.vec import mVec, Vec
@@ -17,7 +16,7 @@ class PointAny(LinearAny):
     def __sub__(self, other):
         delta = super().__sub__(other)
         if isinstance(other, PointAny):
-            if other.mutable:
+            if other.is_mutable():
                 return mVec(delta)
             else:
                 return Vec(delta)
