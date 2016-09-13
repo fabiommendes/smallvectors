@@ -79,7 +79,8 @@ class Sequentiable(ABC):
         if self.is_immutable():
             raise KeyError('cannot set coordinate of immutable object')
         else:
-            raise NotImplementedError('subclass must implement __setitem__')
+            tname = self.__class__.__name__
+            raise NotImplementedError('%s must implement __setitem__' % tname)
 
     def __len__(self):
         raise NotImplementedError
@@ -109,5 +110,3 @@ class Sequentiable(ABC):
 
     def __bool__(self):
         return bool(self.size)
-
-

@@ -92,6 +92,16 @@ class Vec3D(VecND):
         else:
             raise RuntimeError('invalid integer index: %s' % idx)
 
+    def __setitem__(self, idx, value):
+        _assure_mutable_set_coord(self)
+        value = convert(value, self.dtype)
+        if idx == 0:
+            self._x = value
+        elif idx == 1:
+            self._y = value
+        elif idx == 2:
+            self._z = value
+
     def cross(self, other):
         """
         The cross product between two tridimensional vectors.

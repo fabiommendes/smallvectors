@@ -2,7 +2,9 @@ from generic import overload, convert
 from generic.op import mul
 
 from smallvectors import Vec, asvector
-from smallvectors.core import SmallVectorsBase, AddElementWise
+from smallvectors.core import SmallVectorsBase, \
+    AddElementWise, mAddElementWise, \
+    MulScalar, mMulScalar
 from smallvectors.core.mutability import Mutable, Immutable
 from smallvectors.utils import flatten, dtype as _dtype
 
@@ -16,7 +18,7 @@ __all__ = [
 number = (float, int)
 
 
-class MatAny(SmallVectorsBase, AddElementWise):
+class MatAny(AddElementWise, MulScalar, SmallVectorsBase):
     """
     Base class for mutable and immutable matrix types
     """
@@ -564,7 +566,7 @@ class Mat(MatAny, Immutable):
     __slots__ = ()
 
 
-class mMat(MatAny, Mutable):
+class mMat(MatAny, mAddElementWise, mMulScalar, Mutable):
     """
     A mutable Mat.
     """

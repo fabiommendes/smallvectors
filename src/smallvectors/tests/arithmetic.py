@@ -1,6 +1,6 @@
 import pytest
 
-from smallvectors import simeq
+from smallvectors import simeq, MutabilityAPI
 
 
 class TestBinaryOperation:
@@ -95,6 +95,24 @@ class TestPairwiseAddition(TestBinaryOperation):
         with pytest.raises((ValueError, TypeError)):
             scalar - a
 
+    def test_inplace_addition(self, a, b, add_ab, cls):
+        if issubclass(cls, MutabilityAPI):
+            mut = a.mutable()
+            id_mut = id(mut)
+            mut += b
+
+            assert mut == add_ab
+            assert id_mut == id(mut)
+
+    def test_inplace_subtraction(self, a, b, sub_ab, cls):
+        if issubclass(cls, MutabilityAPI):
+            mut = a.mutable()
+            id_mut = id(mut)
+            mut -= b
+
+            assert mut == sub_ab
+            assert id_mut == id(mut)
+
 
 class TestPairwiseMultiplication(TestBinaryOperation):
     base_args__mul = ()
@@ -139,5 +157,23 @@ class TestScalarMultiplication(TestBinaryOperation):
     def test_rhs_division_fails(self, a, one):
         with pytest.raises((ValueError, TypeError)):
             one / a
+
+    def test_inplace_multiplication(self, a, scalar, smul, cls):
+        if issubclass(cls, MutabilityAPI):
+            mut = a.mutable()
+            id_mut = id(mut)
+            mut *= scalar
+
+            assert mut == smul
+            assert id_mut == id(mut)
+
+    def test_inplace_subtraction(self, a, scalar, smul, cls):
+        if issubclass(cls, MutabilityAPI):
+            mut = a.mutable()
+            id_mut = id(mut)
+            mut /= (1 / smul)
+
+            assert mut == smul
+            assert id_mut == id(mut)
 
 

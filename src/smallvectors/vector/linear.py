@@ -5,7 +5,7 @@ from smallvectors.vector import DIMENSION_BASES
 
 
 # noinspection PyAbstractClass
-class LinearAny(SmallVectorsBase, AddElementWise, MulScalar):
+class LinearAny(AddElementWise, MulScalar, SmallVectorsBase):
     """
     Common implementations for Vec and Point types
     """

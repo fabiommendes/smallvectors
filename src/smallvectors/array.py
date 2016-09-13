@@ -8,19 +8,26 @@ from smallvectors.core.flat import Flat
 __all__ = ['Array']
 
 
-class Array(SmallVectorsBase, Sequence, AddElementWise, MulElementWise,
-            AddScalar, MulScalar):
+class Array(AddElementWise, MulElementWise, AddScalar, MulScalar,
+            SmallVectorsBase, Sequence):
     """
     Unidimensional array of uniform objects.
     """
 
     __parameters__ = [int, type]
+    __slots__ = ('flat',)
 
     @classmethod
     def __abstract_new__(cls, data):
         N = len(data)
         cls = cls[N, dtype(data)]
         return cls.from_flat(data)
+
+    @classmethod
+    def from_flat(cls, data, dtype=None, copy=False, shape=None):
+        if dtype is None:
+            return cls(data)
+        return super().from_flat(data, dtype=dtype, copy=copy, shape=shape)
 
     def __init__(self, data):
         dtype = self.dtype
@@ -35,22 +42,3 @@ class Array(SmallVectorsBase, Sequence, AddElementWise, MulElementWise,
 
     def __iter__(self):
         return iter(self.flat)
-
-    @classmethod
-    def from_flat(cls, data, dtype=None, copy=False):
-        if dtype is None:
-            return cls(data)
-        return super()(data, dtype=dtype, copy=copy)
-
-
-if __name__ == '__main__':
-    A = Array([1, 2, 3, 4])
-    import pprint
-    pprint.pprint(list(add))
-    print(A)
-    print(A + A)
-    print(A * A)
-    print(A / A)
-    print(A * 2)
-    print(A + 1)
-    print(1 + A)

@@ -1,13 +1,12 @@
 from numbers import Number
 
 from generic import promote_type, convert
-from generic.op import add, sub, mul, truediv, floordiv, Object
+from generic.op import add, sub, mul, truediv, floordiv
 
-from smallvectors.core import ABC
 from smallvectors.core.base import SmallVectorsBase
 
 
-class AddElementWise(ABC, Object):
+class AddElementWise(SmallVectorsBase):
     """
     Implements elementwise addition and subtraction.
     """
@@ -29,19 +28,19 @@ class mAddElementWise(AddElementWise):
     """
 
     def __iadd__(self, other):
-        other = convert(other, type(self))
-        for i, x in other.flat:
-            self.flat[i] += x
+        data = [x + y for (x, y) in zip(self.flat, other.flat)]
+        for i, x in enumerate(data):
+            self.flat[i] = convert(x, self.dtype)
         return self
 
     def __isub__(self, other):
-        other = convert(other, type(self))
-        for i, x in other.flat:
-            self.flat[i] -= x
+        data = [x - y for (x, y) in zip(self.flat, other.flat)]
+        for i, x in enumerate(data):
+            self.flat[i] = convert(x, self.dtype)
         return self
 
 
-class MulElementWise(ABC, Object):
+class MulElementWise(SmallVectorsBase):
     """
     Implements elementwise multiplication and division
     """
@@ -63,21 +62,21 @@ class mMulElementWise(MulElementWise):
     """
 
     def __imul__(self, other):
-        other = convert(other, type(self))
-        for i, x in other.flat:
-            self.flat[i] *= x
+        data = [x * y for (x, y) in zip(self.flat, other.flat)]
+        for i, x in enumerate(data):
+            self.flat[i] = convert(x, self.dtype)
         return self
 
     def __itruediv__(self, other):
-        other = convert(other, type(self))
-        for i, x in other.flat:
-            self.flat[i] /= x
+        data = [x / y for (x, y) in zip(self.flat, other.flat)]
+        for i, x in enumerate(data):
+            self.flat[i] = convert(x, self.dtype)
         return self
 
     def __ifloordiv__(self, other):
-        other = convert(other, type(self))
-        for i, x in other.flat:
-            self.flat[i] /= x
+        data = [x // y for (x, y) in zip(self.flat, other.flat)]
+        for i, x in enumerate(data):
+            self.flat[i] = convert(x, self.dtype)
         return self
 
 
@@ -157,7 +156,7 @@ def truediv_elementwise_factory(argtypes, restype):
     return func
 
 
-class MulScalar(ABC, Object):
+class MulScalar(SmallVectorsBase):
     """
     Implements scalar multiplication and division.
     """
@@ -175,20 +174,23 @@ class mMulScalar(MulScalar):
     def __imul__(self, other):
         other = convert(other, self.dtype)
         for i, x in enumerate(self.flat):
-            self.flat[i] *= x
+            self.flat[i] *= other
+        return self
 
     def __itruediv__(self, other):
         other = convert(other, self.dtype)
         for i, x in enumerate(self.flat):
-            self.flat[i] /= x
+            self.flat[i] /= other
+        return self
 
     def __ifloordiv__(self, other):
         other = convert(other, self.dtype)
         for i, x in enumerate(self.flat):
-            self.flat[i] //= x
+            self.flat[i] //= other
+        return self
 
 
-class AddScalar(ABC, Object):
+class AddScalar(SmallVectorsBase):
     """
     Implements scalar addition and subtraction
     """
@@ -204,14 +206,18 @@ class mAddScalar(AddScalar):
     __slots__ = ()
 
     def __iadd__(self, other):
-        other = convert(other, self.dtype)
-        for i, x in enumerate(self.flat):
-            self.flat[i] += x
+        return self
+
+        dtype = self.dtype
+        for i, x in enumerate(other.flat):
+            self.flat[i] = convert(self.flat[i] + x, dtype)
+        return self
 
     def __isub__(self, other):
         other = convert(other, self.dtype)
-        for i, x in enumerate(self.flat):
+        for i, x in enumerate(other.flat):
             self.flat[i] -= x
+        return self
 
 
 @mul.register(MulScalar, Number)

@@ -67,6 +67,14 @@ class Vec2D(VecND):
         else:
             raise RuntimeError('invalid index for getitem_simple: %s' % idx)
 
+    def __setitem__(self, idx, value):
+        _assure_mutable_set_coord(self)
+        value = convert(value, self.dtype)
+        if idx == 0:
+            self._x = value
+        elif idx == 1:
+            self._y = value
+
     def __addsame__(self, other):
         return self._fromcoords_unsafe(self._x + other._x, self._y + other._y)
 

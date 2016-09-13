@@ -5,7 +5,7 @@ from smallvectors.core import SmallVectorsBase, AddElementWise
 from smallvectors.utils import flatten, dtype
 
 
-class Affine(SmallVectorsBase, AddElementWise):
+class Affine(AddElementWise, SmallVectorsBase):
     """
     A generic affine transformation. Affine transformations are a combination
     of linear transformation + translation. A affine operation $A(v)$ in a

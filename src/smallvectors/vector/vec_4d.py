@@ -21,7 +21,7 @@ class Vec4D(VecND):
 
     @w.setter
     def w(self, value):
-        _assure_mutable_set_coord(value)
+        _assure_mutable_set_coord(self)
         self._w = value
 
     x = x0 = Vec3D.x
@@ -60,7 +60,7 @@ class Vec4D(VecND):
         yield self._z
         yield self._w
 
-    def __getitem__(self, idx):
+    def __getitem_simple__(self, idx):
         if idx == 0:
             return self._x
         elif idx == 1:
@@ -69,5 +69,15 @@ class Vec4D(VecND):
             return self._z
         elif idx == 3:
             return self._w
-        else:
-            raise RuntimeError('invalid index for getitem_simple: %s' % idx)
+
+    def __setitem__(self, idx, value):
+        _assure_mutable_set_coord(self)
+        value = convert(value, self.dtype)
+        if idx == 0:
+            self._x = value
+        elif idx == 1:
+            self._y = value
+        elif idx == 2:
+            self._z = value
+        elif idx == 3:
+            self._w = value
