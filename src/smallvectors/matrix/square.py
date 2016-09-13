@@ -113,7 +113,7 @@ class SquareMixin:
         # Creates extended matrix
         N = self.nrows
         dtype = promote_type(float, self.dtype)
-        matrix = self._mmatrix[N, N, dtype].from_flat(self.flat)
+        matrix = self._mmat[N, N, dtype].from_flat(self.flat)
         matrix = matrix.append_col(self._identity(N))
 
         # Make left hand side upper triangular
@@ -173,7 +173,7 @@ class SquareMixin:
 
         # Creates extended matrix
         N = self.nrows
-        matrix = self._mmatrix[N, N, self._floating].from_flat(self.flat)
+        matrix = self._mmat[N, N, self._floating].from_flat(self.flat)
         matrix = matrix.append_col(b)
 
         for i in range(0, N - 1):

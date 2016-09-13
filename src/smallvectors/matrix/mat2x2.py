@@ -90,8 +90,8 @@ class Mat2x2Mixin(SquareMixin):
 
     def inv(self):
         det = self.det()
-        return self._matrix([self._d / det, -self._b / det],
-                            [-self._c / det, self._a / det])
+        return self._mat([self._d / det, -self._b / det],
+                         [-self._c / det, self._a / det])
 
     def transpose(self):
         return self.__class__([self._a, self._c],
