@@ -13,9 +13,9 @@ dirname = os.path.dirname(__file__)
 
 
 # Save version and author to __meta__.py
-with open(os.path.join(dirname, 'src', project, '__meta__.py'), 'w', encoding='utf-8') as F:
-    F.write('#-*- coding: utf-8 -*-\n'
-            '__version__ = %r\n'
+file_name = os.path.join(dirname, 'src', project, '__meta__.py')
+with open(file_name, 'w', encoding='utf-8') as F:
+    F.write('__version__ = %r\n'
             '__author__ = %r\n' % (version, author))
 
 # Chooses the default Python3 branch or the code converted by 3to2
@@ -79,6 +79,7 @@ setup(
             'pytest',
             'manuel',
             'sphinx',
+            'python-boilerplate',
         ],
     },
 

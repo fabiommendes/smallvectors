@@ -1,12 +1,16 @@
 DIMENSION_BASES = {}
 from .vec import VecAny, Vec, mVec, asavector, asmvector, asvector
-from . import promotion as _promotion
 from . import vec_nd as _vec_nd
 from . import vec_2d as _vec_2d
 from . import vec_3d as _vec_3d
 from . import vec_4d as _vec_4d
 from .direction import Direction, asdirection
 from .point import PointAny, Point, mPoint, aspoint, asapoint, asmpoint
+
+try:
+    from . import promotion as _promotion
+except RuntimeError:
+    pass
 
 # Maps dimensions to additional bases
 DIMENSION_BASES.update({

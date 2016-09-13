@@ -1,7 +1,8 @@
 import pytest
 
-from smallvectors import Immutable
 from smallvectors.core.mutability import Mutable, Immutable
+from smallvectors.tests import base
+from smallvectors.tests import arithmetic
 
 
 @pytest.fixture
@@ -17,47 +18,10 @@ def abstract_prop(name):
     return fget
 
 
-def assert_triangular_identity(a, b, norm):
-    assert (a + b).norm(norm) <= a.norm(norm) + b.norm(norm)
-
-
-class TestClass:
+class ClassTester(base.ClassTester):
     """
-    Tests around a base class.
+    Base tester for smallvectors classes.
     """
-
-    base_cls = abstract_prop('base_cls')
-    base_args = abstract_prop('base_args')
-
-    @pytest.fixture
-    def obj(self):
-        return self.base_cls(*self.base_args)
-
-    @pytest.fixture
-    def cls(self):
-        return self.base_cls
-
-    @pytest.fixture
-    def args(self):
-        return self.base_args
-
-    @pytest.fixture
-    def tol(self):
-        return 1e-5
-
-    def random_obj(self):
-        """
-        A random object.
-        """
-
-        return self.base_cls(*self.random_args())
-
-    def random_args(self):
-        """
-        A random valid argument used to instantiate a random object
-        """
-
-        raise NotImplementedError
 
     def test_object_has_no_dict(self, obj):
         cls_list = list(type(obj).mro())[:-1]
@@ -75,44 +39,48 @@ class TestClass:
         assert isinstance(obj, cls)
 
 
-class TestMutability(TestClass):
+class TestMutability(ClassTester):
     """
     Tests the mutable/immutable interface
     """
 
-    @property
-    def immutable_cls(self):
-        return self.base_cls
-
-    @property
-    def mutable_cls(self):
-        return self.base_cls.__mutable_class__
+    @pytest.fixture
+    def immutable_cls(self, cls):
+        if issubclass(cls, Mutable):
+            return cls.__immutable_class__
+        return cls
 
     @pytest.fixture
-    def mutable(self):
-        return self.mutable_cls(*self.base_args)
+    def mutable_cls(self, cls):
+        if issubclass(cls, Immutable):
+            return cls.__mutable_class__
+        return cls
 
     @pytest.fixture
-    def immutable(self):
-        return self.immutable_cls(*self.base_args)
+    def mutable(self, mutable_cls, args, kwargs):
+        return mutable_cls(*args, **kwargs)
 
-    def test_classes_define_mutability(self):
-        assert issubclass(self.mutable_cls, Mutable)
-        assert issubclass(self.immutable_cls, Immutable)
+    @pytest.fixture
+    def immutable(self, immutable_cls, args, kwargs):
+        return immutable_cls(*args, **kwargs)
 
-    def test_construct_mutable(self):
-        self.mutable_cls(*self.base_args)
+    def test_mutable_from_immutable(self, cls):
+        if issubclass(cls, Mutable):
+            assert cls is cls.__mutable_class__
+            assert issubclass(cls.__immutable_class__, Immutable)
+        elif issubclass(cls, Immutable):
+            assert cls is cls.__immutable_class__
+            assert issubclass(cls.__mutable_class__, Mutable)
+        else:
+            raise RuntimeError('base_cls is neither mutable nor immutable')
 
-    def test_construct_immutable(self):
-        self.immutable_cls(*self.base_args)
-
-    def test_mutable_equality(self, mutable):
-        new = self.mutable_cls(*self.base_args)
+    def test_mutable_equality(self, mutable, mutable_cls, args, kwargs):
+        new = mutable_cls(*args, **kwargs)
         assert mutable == new
 
-    def test_immutable_equality(self, immutable):
-        new = self.immutable_cls(*self.base_args)
-        assert immutable, new
+    def test_immutable_equality(self, immutable, immutable_cls, args, kwargs):
+        new = immutable_cls(*args, **kwargs)
+        assert immutable == new
 
     def test_mutable_equals_to_immutable(self, mutable, immutable):
         assert mutable == immutable
@@ -141,20 +109,13 @@ class DisableMutabilityTests:
 
     base_cls = None
 
-    @property
-    def mutable_cls(self):
-        return self.base_cls
-
-    @property
-    def immutable_cls(self):
-        return self.base_cls
 
 for _attr, _method in vars(TestMutability).items():
     if _attr.startswith('test_') and not hasattr(DisableMutabilityTests, _attr):
         setattr(DisableMutabilityTests, _attr, None)
 
 
-class TestFlatable(TestClass):
+class TestFlatable(ClassTester):
     """
     Tests the Flatable interface.
     """
@@ -180,7 +141,7 @@ class TestFlatable(TestClass):
             obj.flat[len(obj.flat)]
 
 
-class TestSequentiable(TestClass):
+class TestSequentiable(ClassTester):
     """
     Tests the Sequentiable interface.
     """
@@ -190,30 +151,25 @@ class TestSequentiable(TestClass):
         assert list(obj) == list(args)
 
 
-class TestNormedObject(TestClass):
+class TestNormedObject(ClassTester):
     """
     Abstract tests for normed objects.
     """
 
-    tol = tol()
     norm = None
-    unitary_args = ()
+    base_args__unitary = ()
 
-    @pytest.fixture
-    def unitary(self):
-        return self.base_cls(*self.unitary_args)
+    def test_unit_object_has_unity_norm(self, unitary, tol):
+        assert abs(unitary.norm(self.norm) - 1.0) < tol
+        assert abs(unitary.norm_sqr(self.norm) - 1.0) < tol
+        assert unitary.is_unity(self.norm, tol=tol)
 
-    def test_unit_object_has_unity_norm(self, unitary):
-        assert abs(unitary.norm(self.norm) - 1.0) < self.tol
-        assert abs(unitary.norm_sqr(self.norm) - 1.0) < self.tol
-        assert unitary.is_unity(self.norm, tol=self.tol)
+    def test_doubled_object_is_not_normalized(self, unitary, tol):
+        assert abs((2 * unitary).norm() - 2) < tol
 
-    def test_doubled_object_is_not_normalized(self, unitary):
-        assert abs((2 * unitary).norm() - 2) < self.tol
-
-    def test_unit_object_is_normalized(self, unitary):
+    def test_unit_object_is_normalized(self, unitary, tol):
         assert abs((unitary.normalize(self.norm) - unitary)
-                   .norm(self.norm)) < self.tol
+                   .norm(self.norm)) < tol
 
     def test_stretched_object_has_norm_greater_than_one(self, unitary):
         assert (unitary * 1.1).norm(self.norm) > 1
@@ -222,10 +178,14 @@ class TestNormedObject(TestClass):
         assert (unitary * 0.9).norm(self.norm) < 1
 
     def test_triangular_identity(self, unitary):
-        assert_triangular_identity(unitary, unitary, self.norm)
-        assert_triangular_identity(unitary, 2 * unitary, self.norm)
-        assert_triangular_identity(unitary, 0 * unitary, self.norm)
+        self.assert_triangular_identity(unitary, unitary, self.norm)
+        self.assert_triangular_identity(unitary, 2 * unitary, self.norm)
+        self.assert_triangular_identity(unitary, 0 * unitary, self.norm)
 
     def test_null_vector_is_null(self, unitary):
         assert not unitary.is_null()
         assert (unitary * 0).is_null()
+
+    def assert_triangular_identity(self, a, b, norm):
+        assert (a + b).norm(norm) <= a.norm(norm) + b.norm(norm)
+

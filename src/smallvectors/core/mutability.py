@@ -1,6 +1,25 @@
+import sys
+
 from generic import parametric
 
-from smallvectors.core.util import get_sibling_classes
+
+class complementary_descriptor:
+    def __init__(self, attr):
+        self.attr = attr
+
+    def __get__(self, obj, cls):
+        other = get_complementary(cls)
+        setattr(cls, self.attr, other)
+        return other
+
+
+class setter_descriptor:
+    def __init__(self, attr):
+        self.attr = attr
+
+    def __get__(self, obj, cls):
+        setattr(cls, self.attr, cls)
+        return cls
 
 
 class Mutable(parametric.Mutable):
@@ -9,23 +28,11 @@ class Mutable(parametric.Mutable):
     """
 
     __slots__ = ()
+    __immutable_class__ = complementary_descriptor('__immutable_class__')
+    __mutable_class__ = setter_descriptor('__mutable_class__')
 
     def __getstate__(self):
         return NotImplemented
-
-    @property
-    def __immutable_class__(self):
-        cls = self.__class__
-        mod = __import__(cls.__module__)
-        immutable = getattr(mod, cls.__name__[1:])
-        if not issubclass(immutable, Immutable):
-            raise TypeError('%s should be immutable')
-        setattr(cls, '__immutable_class__', immutable)
-        return immutable
-
-    @property
-    def __mutable_class__(self):
-        return self.__class__
 
     def is_mutable(self):
         """
@@ -53,13 +60,7 @@ class Mutable(parametric.Mutable):
         Return an immutable copy of object.
         """
 
-        try:
-            cls = self.__immutable_class__
-        except AttributeError:
-            siblings = get_sibling_classes(type(self))
-            immutable = [T for T in siblings if issubclass(T, Immutable)]
-            assert len(immutable) == 1
-            cls = type(self).__immutable_class__ = immutable[0]
+        cls = self.__immutable_class__
         return cls(*self.__getstate__())
 
     def copy(self):
@@ -72,23 +73,11 @@ class Immutable(parametric.Immutable):
     """
 
     __slots__ = ()
+    __mutable_class__ = complementary_descriptor('__mutable_class__')
+    __immutable_class__ = setter_descriptor('__immutable_class__')
 
     def __getstate__(self):
         return NotImplemented
-
-    @property
-    def __mutable_class__(self):
-        cls = self.__class__
-        mod = __import__(cls.__module__)
-        mutable = getattr(mod, 'm' + cls.__name__)
-        if not issubclass(mutable, Mutable):
-            raise TypeError('%s should be mutable')
-        setattr(cls, '__mutable_class__', mutable)
-        return mutable
-
-    @property
-    def __immutable_class__(self):
-        return self.__class__
 
     def is_mutable(self):
         """
@@ -109,13 +98,7 @@ class Immutable(parametric.Immutable):
         Return a mutable copy of object.
         """
 
-        try:
-            cls = self.__mutable_class__
-        except AttributeError:
-            siblings = get_sibling_classes(type(self))
-            mutable = [T for T in siblings if issubclass(T, Mutable)]
-            assert len(mutable) == 1
-            cls = type(self)._mutable_ = mutable[0]
+        cls = self.__mutable_class__
         return cls(*self.__getstate__())
 
     def immutable(self):
@@ -127,3 +110,34 @@ class Immutable(parametric.Immutable):
 
     def copy(self):
         return self
+
+
+def get_complementary(cls):
+    """
+    Return mutable from immutable and vice-versa.
+    """
+
+    if cls.__origin__ is None:
+        origin = cls
+    else:
+        origin = cls.__origin__
+    mod = sys.modules[cls.__module__]
+
+    # Get class
+    if issubclass(cls, Mutable):
+        is_mutable = False
+        other_origin = getattr(mod, origin.__name__[1:])
+    else:
+        is_mutable = True
+        other_origin = getattr(mod, 'm' + origin.__name__)
+
+    # Apply parameters
+    if (cls.__parameters__ and
+            not all(isinstance(x, type) for x in cls.__parameters__)):
+        other = other_origin[cls.__parameters__]
+    else:
+        other = other_origin
+
+    # Return
+    assert issubclass(other, (Mutable if is_mutable else Immutable))
+    return other

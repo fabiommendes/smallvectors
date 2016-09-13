@@ -49,7 +49,7 @@ class Normed(MathFunctionsMixin, ABC):
             Z = self.norm(which)
             return self / Z
         except ZeroDivisionError:
-            raise ValueError('null element cannot be normalize')
+            raise ValueError('null element cannot be normalized')
 
     @mutating
     def inormalize(self, which=None):

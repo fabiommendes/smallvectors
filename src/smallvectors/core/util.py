@@ -34,20 +34,6 @@ def default_smallvectors_type_ns(params):
     return ns
 
 
-def get_sibling_classes(cls):
-    """
-    Helper function for finding the Mutable/Immutable pair of classes.
-    """
-
-    parent = cls.mro()[1]
-    mod = sys.modules[cls.__module__]
-    names = (x for x in dir(mod) if not x.startswith('_'))
-    objects = (getattr(mod, x) for x in names)
-    types = (x for x in objects if isinstance(x, type))
-    siblings = [T for T in types if issubclass(T, parent)]
-    return siblings
-
-
 def mutating(func):
     """
     Decorator that marks functions for suitable only for mutable objects

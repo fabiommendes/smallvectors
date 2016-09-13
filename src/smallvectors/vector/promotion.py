@@ -8,18 +8,20 @@ from smallvectors.vector import Vec, mVec
 
 @set_promotion(Vec, Vec)
 def promote_vectors(u, v):
-    """Promote two Vec types to the same type"""
+    """
+    Promote two Vec subclasses to the same type.
+    """
 
     u_type = type(u)
     v_type = type(v)
     if u_type is v_type:
-        return (u, v)
+        return u, v
 
     # Test shapes
     if u_type.shape != v_type.shape:
         raise TypeError('vectors have different shapes')
 
-    # Fasttrack common cases
+    # Fast-track common cases
     u_dtype = u.dtype
     v_dtype = v.dtype
     if u_dtype is float and v_dtype is int:

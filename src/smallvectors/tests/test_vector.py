@@ -1,40 +1,95 @@
 from math import pi, sqrt
+from random import random as rand
 
 import pytest
 from generic import op
-from random import random as rand
 
 from smallvectors import Vec, mVec, simeq
-from smallvectors.tests import abstract as base
-from smallvectors.tests.abstract import assert_triangular_identity, tol
+from smallvectors.tests import abstract as base, arithmetic
 from smallvectors.vector.linear import LinearAny
 
 
-class VectorBase(base.TestNormedObject, base.TestMutability):
+class VectorBase(base.TestNormedObject,
+                 base.TestMutability,
+                 arithmetic.TestPairwiseAddition):
     base_cls = Vec
-    mutable_cls = mVec
-    tol = tol()
+
+    @property
+    def base_args__add_ab(self):
+        return (x + y for (x, y) in zip(self.base_args, self.base_args__other))
+
+    @property
+    def base_args__sub_ab(self):
+        return (x - y for (x, y) in zip(self.base_args, self.base_args__other))
+
+    @property
+    def base_args__zero(self):
+        return (0 for x in self.args())
 
     @pytest.fixture
-    def unitary(self):
-        return Vec(*self.base_args)
+    def unitary(self, args, kwargs):
+        return Vec(*args, **kwargs)
 
     @pytest.fixture
-    def null(self):
-        return Vec(*(0 for x in self.base_args))
+    def null(self, args):
+        return Vec(*(0 for x in args))
 
     @pytest.fixture
-    def u(self, args):
-        return self.base_cls(*(rand() for x in args))
+    def u(self, cls, args, kwargs):
+        return cls(*(rand() for x in args), **kwargs)
 
     @pytest.fixture
-    def v(self, args):
-        return self.base_cls(*(rand() for x in args))
+    def v(self, cls, args, kwargs):
+        return cls(*(rand() for x in args), **kwargs)
 
+    def test_mutable_cls_is_mVec(self, mutable_cls):
+        assert mutable_cls is mVec
+
+    # Tests conversions
     def test_conversion_complex(self, unitary):
         conv = unitary.convert(complex)
         assert type(conv) is not type(unitary)
 
+    # Arithmetic tests
+    def test_invalid_add_scalar(self, a):
+        with pytest.raises(TypeError):
+            y = a + 1
+
+    def test_invalid_sub_scalar(self, a):
+        with pytest.raises(TypeError):
+            y = a - 1
+
+    def test_invalid_mul_tuple(self, a):
+        with pytest.raises(TypeError):
+            y = a * (1, 2)
+
+    def test_invalid_mul_vec(self, a):
+        with pytest.raises(TypeError):
+            y = a * a
+
+    def test_invalid_div_tuple(self, a):
+        with pytest.raises(TypeError):
+            y = a / (1, 2)
+        with pytest.raises(TypeError):
+            y = (1, 2) / a
+
+    def test_invalid_div_vec(self, a):
+        with pytest.raises(TypeError):
+            y = a / a
+
+    def test_invalid_div_scalar(self, a):
+        with pytest.raises(TypeError):
+            y = 1 / a
+
+    def test_vec_almost_equal(self, a, b):
+        b = a + b / 1e9
+        w = a + 0 * b
+        assert a.almost_equal(b)
+        assert b.almost_equal(a)
+        assert a.almost_equal(w)
+        assert w.almost_equal(a)
+
+    # Test API
     def test_clamp_to_value(self, unitary):
         assert simeq(unitary.clamp(2), 2 * unitary)
         assert simeq(unitary.clamp(0.5), 0.5 * unitary)
@@ -73,14 +128,15 @@ class VectorBase(base.TestNormedObject, base.TestMutability):
 
 class TestVector2D(VectorBase):
     base_args = (0.6, 0.8)
+    base_args__other = (1, 2)
 
     def test_polar_coordinates(self):
         assert Vec[2, float].from_polar(1, 0) == Vec(1, 0)
 
     def test_rotations(self):
         v = Vec(1, 0)
-        assert simeq(v.rotate(pi/2), Vec(0, 1))
-        assert simeq(v.rotate_at(pi/2, Vec(1, 0)), v)
+        assert simeq(v.rotate(pi / 2), Vec(0, 1))
+        assert simeq(v.rotate_at(pi / 2, Vec(1, 0)), v)
 
     def test_cross(self):
         assert Vec(1, 0).cross(Vec(0, 1)) == 1
@@ -94,29 +150,40 @@ class TestVector2D(VectorBase):
         assert Vec(1, 0).perp() == Vec(0, 1)
         assert Vec(1, 0).perp(cw=True) == Vec(0, -1)
 
+    def test_triangular_identity_2D(self):
+        self.assert_triangular_identity(Vec(1, 2), Vec(3, 4), None)
+        self.assert_triangular_identity(Vec(1, 1), Vec(1, 1), None)
+        self.assert_triangular_identity(Vec(1, 2), Vec(0, 0), None)
+
+    def test_rotated_is_new(self, a):
+        assert a.rotate(0.0) is not a
+        assert a.rotate(0.0) == a
+
+    def test_rotated_keeps_norm(self, obj):
+        for t in range(5):
+            Z1 = obj.norm()
+            Z2 = obj.rotate(6.28 * t / 5).norm()
+            assert abs(Z1 - Z2) < 1e-6, (Z1, Z2)
+
 
 class TestVector3D(VectorBase):
     base_args = (1 / 3, 2 / 3, 2 / 3)
+    base_args__other = (1, 2, 3)
+
+    def test_triangular_identity_3D(self):
+        self.assert_triangular_identity(Vec(1, 2, 3), Vec(4, 5, 6), None)
+        self.assert_triangular_identity(Vec(1, 2, 3), Vec(1, 2, 3), None)
+        self.assert_triangular_identity(Vec(1, 2, 3), Vec(0, 0, 0), None)
 
 
 class TestVector4D(VectorBase):
     base_args = (0.5, 0.5, 0.5, 0.5)
+    base_args__other = (1, 2, 3, 4)
 
 
 class TestVector5D(VectorBase):
     base_args = (0.4, 0.4, 0.4, 0.4, 0.6)
-
-
-def test_triangular_identity_2D():
-    assert_triangular_identity(Vec(1, 2), Vec(3, 4), None)
-    assert_triangular_identity(Vec(1, 1), Vec(1, 1), None)
-    assert_triangular_identity(Vec(1, 2), Vec(0, 0), None)
-
-
-def test_triangular_identity_3D():
-    assert_triangular_identity(Vec(1, 2, 3), Vec(4, 5, 6), None)
-    assert_triangular_identity(Vec(1, 2, 3), Vec(1, 2, 3), None)
-    assert_triangular_identity(Vec(1, 2, 3), Vec(0, 0, 0), None)
+    base_args__other = (1, 2, 3, 4, 5)
 
 
 # Test Vec type properties

@@ -7,16 +7,6 @@ from smallvectors.matrix.square import SquareMixin
 class Mat2x2Mixin(SquareMixin):
     __slots__ = ('_a', '_b', '_c', '_d')
 
-    def __init__(self, row1, row2):
-        dtype = self.dtype
-        a, b = row1
-        c, d = row2
-        self._a = convert(a, dtype)
-        self._b = convert(b, dtype)
-        self._c = convert(c, dtype)
-        self._d = convert(d, dtype)
-
-    # Flat attribute handling
     @classmethod
     def from_flat(cls, data, copy=True, dtype=None):
         if cls.__concrete__ and dtype is None:
@@ -28,13 +18,20 @@ class Mat2x2Mixin(SquareMixin):
             new._c = convert(c, dtype)
             new._d = convert(d, dtype)
             return new
-
-        # super() fix from 3to2 can't handle classmethods...
         return super(Mat2x2Mixin, cls).from_flat(data, copy=copy, dtype=dtype)
 
     @property
     def flat(self):
         return FlatView(self)
+
+    def __init__(self, row1, row2):
+        dtype = self.dtype
+        a, b = row1
+        c, d = row2
+        self._a = convert(a, dtype)
+        self._b = convert(b, dtype)
+        self._c = convert(c, dtype)
+        self._d = convert(d, dtype)
 
     def __flatiter__(self):
         yield self._a
@@ -66,7 +63,6 @@ class Mat2x2Mixin(SquareMixin):
         else:
             raise IndexError(i)
 
-    # Iterators
     def __iter__(self):
         vec = Vec[2, self.dtype]
         yield vec(self._a, self._b)
@@ -83,7 +79,6 @@ class Mat2x2Mixin(SquareMixin):
         yield (1, 0), self._c
         yield (1, 1), self._d
 
-    # Linear algebra operations
     def det(self):
         return self._a * self._d - self._b * self._c
 
@@ -99,8 +94,8 @@ class Mat2x2Mixin(SquareMixin):
                             [-self._c / det, self._a / det])
 
     def transpose(self):
-        return type(self)([self._a, self._c],
-                          [self._b, self._d])
+        return self.__class__([self._a, self._c],
+                              [self._b, self._d])
 
     def eigenpairs(self):
         a, b, c, d = self.flat

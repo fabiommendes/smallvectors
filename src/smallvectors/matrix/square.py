@@ -140,7 +140,7 @@ class SquareMixin:
             matrix.imul_row(i, 1 / matrix[i, i])
 
         out = matrix.select_cols(range(N, 2 * N))
-        return self._matrix[N, N, dtype].from_flat(out.flat)
+        return self._mat[N, N, dtype].from_flat(out.flat)
 
     def solve(self, b, method='gauss', **kwds):
         """

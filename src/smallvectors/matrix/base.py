@@ -506,8 +506,10 @@ class MatAny(SmallVectorsBase, AddElementWise):
             return NotImplemented
 
     def _zip_other(self, other):
-        """Auxiliary function that zip the flat iterator of both operands if
-        the shapes are valid"""
+        """
+        Auxiliary function that zip the flat iterator of both operands if
+        the shapes are valid.
+        """
 
         if not isinstance(other, Mat):
             raise NotImplementedError
@@ -521,16 +523,28 @@ class MatAny(SmallVectorsBase, AddElementWise):
         return zip(self.flat, other.flat)
 
     def __add__(self, other):
-        return self.from_flat(x + y for (x, y) in self._zip_other(other))
+        try:
+            return self.from_flat(x + y for (x, y) in self._zip_other(other))
+        except NotImplementedError:
+            return NotImplemented
 
     def __radd__(self, other):
-        return self.from_flat(y + x for (x, y) in self._zip_other(other))
+        try:
+            return self.from_flat(y + x for (x, y) in self._zip_other(other))
+        except NotImplementedError:
+            return NotImplemented
 
     def __sub__(self, other):
-        return self.from_flat(x - y for (x, y) in self._zip_other(other))
+        try:
+            return self.from_flat(x - y for (x, y) in self._zip_other(other))
+        except NotImplementedError:
+            return NotImplemented
 
     def __rsub__(self, other):
-        return self.from_flat(y - x for (x, y) in self._zip_other(other))
+        try:
+            return self.from_flat(y - x for (x, y) in self._zip_other(other))
+        except NotImplementedError:
+            return NotImplemented
 
     def __neg__(self):
         return self.from_flat(-x for x in self.flat)
@@ -688,8 +702,8 @@ def midentity(N, dtype=float):
     return mMat[N, N, dtype].from_diag([1] * N)
 
 
-SquareMixin._matrix = Mat
-SquareMixin._mmatrix = mMat
+SquareMixin._mat = Mat
+SquareMixin._mmat = mMat
 SquareMixin._identity = identity
 SquareMixin._midentity = midentity
 SquareMixin._rotmatrix = Mat
