@@ -132,6 +132,10 @@ class TestScalarMultiplication(TestBinaryOperation):
         value = 1 / scalar
         assert simeq(obj / value, smul)
 
+    def test_division_by_one(self, obj, one):
+        assert obj / one == obj
+        assert obj // one == obj
+
     def test_rhs_division_fails(self, a, one):
         with pytest.raises((ValueError, TypeError)):
             one / a

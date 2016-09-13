@@ -32,14 +32,65 @@ class MatrixBase(base.TestMutability,
     def M(self, obj):
         return obj
 
-    def test_from_cols(self, M):
+    # Test matrix constructors
+    def test_create_from_cols(self, M):
         cols = list(M.T)
         assert M == Mat.from_cols(cols)
 
-    def test_from_rows(self, M):
+    def test_create_from_rows(self, M):
         rows = list(M)
         assert M == Mat.from_rows(rows)
 
+    def test_create_from_empty_dict(self, zero, shape):
+        m, n = shape
+        mat = Mat[m, n].from_dict({})
+        assert mat == zero
+
+    def test_create_from_dict(self, zero, shape):
+        m, n = shape
+        mat = Mat[m, n].from_dict({(0, 0): 1})
+        assert mat != zero
+        assert mat[0, 0] == 1
+
+    # Conversions
+    def test_conversion_to_dict(self, M):
+        D = M.as_dict()
+        assert isinstance(D, dict)
+        assert 0 not in D.values()
+        assert D
+        assert type(M).from_dict(D) == M
+
+    def test_conversion_to_items(self, M):
+        D = M.as_dict()
+        items = {k: v for k, v in M.items() if v}
+        assert D == items
+
+    # Accessors
+    def test_col_accessor(self, M):
+        col = M.col(0)
+        assert isinstance(col, Vec)
+        assert col == M.T[0]
+
+    def test_row_accessor(self, M):
+        row = M.row(0)
+        assert isinstance(row, Vec)
+        assert row == M[0]
+
+    # Copy
+    def test_copy_changing_terms(self, M):
+        assert M == M.copy()
+
+        cp = M.copy(A00=42)
+        assert cp[0, 0] == 42
+        assert M == cp.copy(A00=M[0, 0])
+
+    # Shape transformations
+    def test_append_column(self, M, shape):
+        m, n = shape
+        col = M.col(0)
+        M2 = M.append_col(col)
+        assert M2.shape == (m, n + 1)
+        assert M2[0, n] == col[0]
 
 class SquareBase(MatrixBase):
     def test_shape_is_square(self, obj, shape):

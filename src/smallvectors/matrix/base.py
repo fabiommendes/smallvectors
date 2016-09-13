@@ -8,7 +8,6 @@ from smallvectors.matrix.mat2x2 import Mat2x2Mixin
 from smallvectors.matrix.mat3x3 import Mat3x3Mixin
 from smallvectors.matrix.square import SquareMixin
 from smallvectors.utils import flatten, dtype as _dtype
-from smallvectors.vector.vec import VecAny
 
 __all__ = [
     # Types
@@ -20,6 +19,7 @@ __all__ = [
 number = (float, int)
 
 
+# noinspection PyPropertyAccess,PyMissingConstructor,PyUnresolvedReferences
 class MatAny(SmallVectorsBase, AddElementWise):
     """
     Base class for mutable and immutable matrix types
@@ -27,6 +27,7 @@ class MatAny(SmallVectorsBase, AddElementWise):
 
     __slots__ = ()
     __parameters__ = (int, int, type)
+    nrows = ncols = None
 
     @classmethod
     def __preparenamespace__(cls, params):
@@ -50,7 +51,7 @@ class MatAny(SmallVectorsBase, AddElementWise):
                 return Mat3x3Mixin, cls
             elif M == N:
                 return SquareMixin, cls
-        return (cls,)
+        return cls,
 
     @staticmethod
     def __finalizetype__(cls):
@@ -60,9 +61,7 @@ class MatAny(SmallVectorsBase, AddElementWise):
         else:
             cls.nrows = cls.ncols = None
 
-    #
     # Constructors
-    #
     @classmethod
     def __abstract_new__(cls, *args, dtype=None):
         flat, nrows, ncols = flatten(args, 2)
@@ -109,7 +108,7 @@ class MatAny(SmallVectorsBase, AddElementWise):
     @classmethod
     def from_cols(cls, cols, dtype=None):
         """
-        Build matrix from a sequence of column Vecs.
+        Build matrix from a sequence of column vectors.
         """
 
         dataT, N, M = flatten(cols, 2)
@@ -144,7 +143,7 @@ class MatAny(SmallVectorsBase, AddElementWise):
         for i in range(M):
             for j in range(N):
                 value = self[i, j]
-                if value == 0:
+                if value != 0:
                     D[i, j] = value
         return D
 
@@ -174,7 +173,7 @@ class MatAny(SmallVectorsBase, AddElementWise):
         Iterator over columns of matrix
 
         See also:
-            :meth:`rows`: iterate over the rows of a matrix.
+            :method:`rows`: iterate over the rows of a matrix.
 
         Example:
             >>> M = Mat([1, 2],
@@ -218,40 +217,38 @@ class MatAny(SmallVectorsBase, AddElementWise):
         start = i * M
         return asvector(self.flat[start:start + M])
 
-    def copy(self, D=None, **kwds):
+    def copy(self, D=None, **kwargs):
         """
         Return a copy of matrix possibly changing some terms.
 
         Can set terms in the matrix by either passing a mapping from (i, j)
-        indexes to values or by passing keyword argments of the form
+        indexes to values or by passing keyword arguments of the form
         ``Aij=value``. The keyword form only accept single digit indexes
 
-        Example
-        -------
+        Example:
+            Copy can do a simple copy of matrix or can do a copy with some
+            overrides
 
-        Copy can do a simple copy of matrix or can do a copy with some
-        overrides
+            >>> matrix = Mat([1, 2], [3, 4])
 
-        >>> matrix = Mat([1, 2], [3, 4])
+            Let us override using a dict
 
-        Let us override using a dict
+            >>> matrix.copy({(0, 0): 42, (0, 1): 3})
+            Mat([42, 3], [3, 4])
 
-        >>> matrix.copy({(0, 0): 42, (0, 1): 3})
-        Mat([42, 3], [3, 4])
+            A similar operation can also be done by setting the corresponding
+            keyword arguments. Remember that indexes start at zero as usual.
 
-        A similar operation can also be done by setting the corresponding
-        keyword arguments. Remember that indexes start at zero as usual.
-
-        >>> matrix.copy(A00=42, A01=3)
-        Mat([42, 3], [3, 4])
+            >>> matrix.copy(A00=42, A01=3)
+            Mat([42, 3], [3, 4])
         """
 
         N, matrix = self.shape
 
         # Populate the dictionary D with values from keywords
-        if kwds:
+        if kwargs:
             D = dict(D or {})
-            for k, v in kwds.items():
+            for k, v in kwargs.items():
                 try:
                     name, i, j = k
                     if name == 'a':
@@ -283,24 +280,22 @@ class MatAny(SmallVectorsBase, AddElementWise):
         """
         Return the transposed matrix
 
-        Example
-        -------
+        Example:
+            Transpose mirrors items around the diagonal.
 
-        Transpose just mirrors items around the diagonal.
+            >>> matrix = Mat([1, 2], [3, 4])
+            >>> print(matrix)
+            |1  2|
+            |3  4|
 
-        >>> matrix = Mat([1, 2], [3, 4])
-        >>> print(matrix)
-        |1  2|
-        |3  4|
+            >>> print(matrix.transpose())
+            |1  3|
+            |2  4|
 
-        >>> print(matrix.transpose())
-        |1  3|
-        |2  4|
+            ``matrix.T`` is an alias to the transpose() method
 
-        ``matrix.T`` is an alias to the transpose() method
-
-        >>> matrix.T == matrix.transpose()
-        True
+            >>> matrix.T == matrix.transpose()
+            True
         """
 
         N, M = self.shape
@@ -310,7 +305,7 @@ class MatAny(SmallVectorsBase, AddElementWise):
             return self.__origin__[M, N, self.dtype].from_cols(self.rows())
 
     # Shape transformations
-    def __raise_badshape(self, data, s1):
+    def __raise_bad_shape(self, data, s1):
         fmt = data, s1, self.nrows, self.nrows
         raise ValueError('incompatible %s size: %s with %s x %s matrix' % fmt)
 
@@ -327,13 +322,13 @@ class MatAny(SmallVectorsBase, AddElementWise):
 
         if isinstance(data, Mat):
             if data.ncols != M:
-                self.__raise_badshape('row', data.ncols)
+                self.__raise_bad_shape('row', data.ncols)
             extra = list(data.flat)
             N += data.nrows
         else:
             extra = list(data)
             if len(data) != M:
-                self.__raise_badshape('row', len(data))
+                self.__raise_bad_shape('row', len(data))
             N += 1
 
         if index is None:
@@ -355,16 +350,17 @@ class MatAny(SmallVectorsBase, AddElementWise):
         cols = list(self.cols())
         if isinstance(data, Mat):
             if data.nrows != N:
-                self.__raise_badshape('column', data.ncols)
+                self.__raise_bad_shape('column', data.ncols)
             if index is None:
                 cols.extend(data.cols())
             else:
+                # noinspection PyTypeChecker
                 cols = cols[:index] + list(data.cols) + cols[index:]
             M += len(data)
 
         else:
             if len(data) != N:
-                self.__raise_badshape('row', len(data))
+                self.__raise_bad_shape('row', len(data))
             if index is None:
                 cols.append(list(data))
             else:
@@ -700,11 +696,3 @@ def midentity(N, dtype=float):
     """
 
     return mMat[N, N, dtype].from_diag([1] * N)
-
-
-SquareMixin._mat = Mat
-SquareMixin._mmat = mMat
-SquareMixin._identity = identity
-SquareMixin._midentity = midentity
-SquareMixin._rotmatrix = Mat
-VecAny._rotmatrix = Mat

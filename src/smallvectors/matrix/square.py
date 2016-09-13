@@ -10,6 +10,7 @@ class SquareMixin:
     """
 
     __slots__ = ()
+    _mat = _mmat = _identity = _rotmatix = None
 
     @classmethod
     def from_diag(cls, diag):
