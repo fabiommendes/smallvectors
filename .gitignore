@@ -13,3 +13,10 @@ docs/_build/
 build/
 dist/
 py2src/
+
+# Python-boilerplate auto generated files
+src/smallvectors/__meta__.py
+
+# Testing and temporary files
+.tox/
+
