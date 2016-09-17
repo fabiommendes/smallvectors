@@ -149,27 +149,31 @@ def get_complementary(cls):
     Return mutable from immutable and vice-versa.
     """
 
+    # Get origin type and its name
     if cls.__origin__ is None:
         origin = cls
     else:
         origin = cls.__origin__
-    mod = sys.modules[cls.__module__]
+    name = cls.__name__
+    origin_name = origin.__name__
 
-    # Get class
-    if issubclass(cls, Mutable):
-        is_mutable = False
-        other_origin = getattr(mod, origin.__name__[1:])
+    # Check if the mutability naming convention is followed. If so, compute the
+    # complementary origin name. If not, raise an attribute error.
+    is_mutable = issubclass(cls, Mutable)
+    if is_mutable and not origin_name.startswith('m'):
+        raise AttributeError('no immutable class associated with %s' % name)
+    elif is_mutable:
+        complementary_name = origin_name[1:]
     else:
-        is_mutable = True
-        other_origin = getattr(mod, 'm' + origin.__name__)
+        complementary_name = 'm' + origin_name
 
-    # Apply parameters
-    if (cls.__parameters__ and
-            not all(isinstance(x, type) for x in cls.__parameters__)):
-        other = other_origin[cls.__parameters__]
+    # We check for the complementary class in the module that defines the origin
+    # class
+    mod = sys.modules[origin.__module__]
+    complementary_origin = getattr(mod, complementary_name)
+
+    # Apply parameters, if necessary
+    if cls is origin:
+        return complementary_origin
     else:
-        other = other_origin
-
-    # Return
-    assert issubclass(other, (Mutable if is_mutable else Immutable))
-    return other
+        return complementary_origin[cls.__parameters__]
