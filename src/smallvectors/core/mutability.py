@@ -8,9 +8,12 @@ class complementary_descriptor:
         self.attr = attr
 
     def __get__(self, obj, cls):
-        other = get_complementary(cls)
-        setattr(cls, self.attr, other)
-        return other
+        try:
+            return cls.__dict__[self.attr]
+        except KeyError:
+            other = get_complementary(cls)
+            setattr(cls, self.attr, other)
+            return other
 
 
 class setter_descriptor:
@@ -18,8 +21,11 @@ class setter_descriptor:
         self.attr = attr
 
     def __get__(self, obj, cls):
-        setattr(cls, self.attr, cls)
-        return cls
+        try:
+            return cls.__dict__[self.attr]
+        except KeyError:
+            setattr(cls, self.attr, cls)
+            return cls
 
 
 class MutabilityAPI:
@@ -54,8 +60,8 @@ class Mutable(parametric.Mutable, MutabilityAPI):
     """
 
     __slots__ = ()
-    __immutable_class__ = complementary_descriptor('__immutable_class__')
-    __mutable_class__ = setter_descriptor('__mutable_class__')
+    __immutable_class__ = complementary_descriptor('__immutable_class')
+    __mutable_class__ = setter_descriptor('__mutable_class')
 
     def __getstate__(self):
         return NotImplemented
@@ -99,8 +105,8 @@ class Immutable(parametric.Immutable, MutabilityAPI):
     """
 
     __slots__ = ()
-    __mutable_class__ = complementary_descriptor('__mutable_class__')
-    __immutable_class__ = setter_descriptor('__immutable_class__')
+    __mutable_class__ = complementary_descriptor('__mutable_class')
+    __immutable_class__ = setter_descriptor('__immutable_class')
 
     def __getstate__(self):
         return NotImplemented
