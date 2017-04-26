@@ -1,11 +1,10 @@
-from generic import promote_type
+import abc
 
-from smallvectors.utils import dtype as _dtype
-from smallvectors.vector import asvector
-from smallvectors.matrix.base import MatAny
+from smallvectors import asvector
+from .mat import Mat
 
 
-class MatSquare(MatAny):
+class MatSquare(Mat, metaclass=abc.ABCMeta):
     """
     Methods specific to square matrices
     """
@@ -49,7 +48,7 @@ class MatSquare(MatAny):
         data = self.flat
         return asvector([data.flat[i * N + i] for i in range(N)])
 
-    def set_diag(self, diag):
+    def new_diag(self, diag):
         """
         Return a copy of the matrix with different diagonal terms.
         """
@@ -63,9 +62,9 @@ class MatSquare(MatAny):
         for i, x in enumerate(diag):
             data[i * M + i] = x
 
-        return self.from_flat(data, copy=False)
+        return self.from_flat(data)
 
-    def drop_diag(self):
+    def new_dropping_diag(self):
         """
         Return a copy of the matrix with diagonal removed (all elements are
         set to zero).
@@ -75,7 +74,7 @@ class MatSquare(MatAny):
         data = list(self.flat)
         for i in range(N):
             data[i * N + i] *= 0
-        return self.from_flat(data, copy=False)
+        return self.from_flat(data)
 
     def eig(self):
         """
@@ -126,22 +125,22 @@ class MatSquare(MatAny):
             # in pivoting position
             trunc_col = list(matrix.col(i))[i:]
             _, idx = max([(abs(c), i) for (i, c) in enumerate(trunc_col)])
-            matrix.iswap_rows(i, idx + i)
+            matrix.swap_rows(i, idx + i)
 
             # Find linear combinations that make all rows below the current one
             # become equal to zero in the current column
             Z = matrix[i, i]
             for k in range(i + 1, N):
-                matrix.isum_row(k, matrix[i] * (-matrix[k, i] / Z))
+                matrix.sum_to_row(k, matrix[i] * (-matrix[k, i] / Z))
 
             # Make the left hand side diagonal
             Z = matrix[i, i]
             for k in range(0, i):
-                matrix.isum_row(k, matrix[i] * (-matrix[k, i] / Z))
+                matrix.sum_to_row(k, matrix[i] * (-matrix[k, i] / Z))
 
         # Normalize by the diagonal
         for i in range(N):
-            matrix.imul_row(i, 1 / matrix[i, i])
+            matrix.multiply_row(i, 1 / matrix[i, i])
 
         out = matrix.select_cols(range(N, 2 * N))
         return self._mat[N, N, dtype].from_flat(out.flat)
@@ -162,7 +161,7 @@ class MatSquare(MatAny):
         b = asvector(b)
         x = b * 0
         D = self.from_diag([1.0 / x for x in self.diag()])
-        R = self.drop_diag()
+        R = self.new_dropping_diag()
 
         for _ in range(maxiter):
             x, old = D * (b - R * x), x
@@ -185,13 +184,13 @@ class MatSquare(MatAny):
             # in pivoting position
             trunc_col = matrix.col(i)[i:]
             _, idx = max([(abs(c), i) for (i, c) in enumerate(trunc_col)])
-            matrix.iswap_rows(i, idx + i)
+            matrix.swap_rows(i, idx + i)
 
             # Find linear combinations that make all rows below the current one
             # become equal to zero in the current column
             Z = matrix[i, i]
             for k in range(i + 1, N):
-                matrix.isum_row(k, matrix[i] * (-matrix[k, i] / Z))
+                matrix.sum_to_row(k, matrix[i] * (-matrix[k, i] / Z))
 
         # Solve equation Ax=b for an upper triangular matrix
         A, b = matrix.drop_col()

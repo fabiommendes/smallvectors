@@ -5,8 +5,8 @@ from generic import convert
 from generic.parametric import Mutable, Immutable
 from generic.util import tname
 
-from smallvectors.utils import dtype as _dtype, lazy
 from smallvectors.core import ABC
+from smallvectors.utils import dtype as _dtype
 
 
 class Flat(collections.Sequence):
@@ -35,6 +35,13 @@ class Flat(collections.Sequence):
     def __len__(self):
         return len(self._data)
 
+    def __eq__(self, other):
+        if isinstance(other, (Flat, list, tuple)):
+            if len(self) == len(other):
+                return all(x == y for x, y in zip(self, other))
+            return False
+        return NotImplemented
+
 
 class mFlat(Flat):
     """
@@ -56,32 +63,32 @@ class FlatView(collections.Sequence):
     also be given.
     """
 
-    __slots__ = ('owner',)
+    __slots__ = ('_object',)
 
     def __init__(self, owner):
-        self.owner = owner
+        self._object = owner
 
     def __repr__(self):
         return 'flat([%s])' % (', '.join(map(repr, self)))
 
     def __iter__(self):
-        for x in self.owner.__flatiter__():
+        for x in self._object.__flatiter__():
             yield x
 
     def __len__(self):
-        return self.owner.__flatlen__()
+        return self._object.__flatlen__()
 
     def __getitem__(self, key):
-        owner = self.owner
+        obj = self._object
         try:
             if isinstance(key, int):
-                return owner.__flatgetitem__(key)
+                return obj.__flatgetitem__(key)
             else:
-                getter = owner.__flatgetitem__
-                indices = range(*key.indices(self.owner.size))
+                getter = obj.__flatgetitem__
+                indices = range(*key.indices(self._object.size))
                 return [getter(i) for i in indices]
         except AttributeError:
-            N = owner.size
+            N = obj.size
 
             if isinstance(key, int):
                 if key < 0:
@@ -100,24 +107,24 @@ class FlatView(collections.Sequence):
                 raise IndexError('invalid index: %r' % key)
 
     def __setitem__(self, key, value):
-        if isinstance(self.owner, Immutable):
+        obj = self._object
+        if isinstance(obj, Immutable):
             raise TypeError('cannot change immutable object')
         try:
-            setter = self.owner.__flatsetitem__
+            setter = obj.__flatsetitem__
         except AttributeError:
             raise TypeError('object must implement __flatsetitem__ in order '
                             'to support item assignment')
         else:
-            N = self.owner.size
+            N = obj.__flatlen__()
+            assert not isinstance(N, type(NotImplemented))
 
             if isinstance(key, int):
-                if key < 0:
-                    key = N - key
-                for i, _ in enumerate(self):
-                    if i == key:
-                        return setter(i, value)
-                else:
+                if key < -N:
                     raise IndexError(key)
+                elif key < 0:
+                    key = N - key
+                setter(key, value)
 
             elif isinstance(key, slice):
                 indices = range(*key.indices(N))
@@ -144,7 +151,7 @@ class Flatable(ABC):
         return self.from_flat([-x for x in self], copy=False)
 
     @classmethod
-    def from_flat(cls, data, copy=True, dtype=None, shape=None):
+    def from_flat(cls, data):
         """
         Initializes object from flattened data.
 
@@ -157,21 +164,7 @@ class Flatable(ABC):
             consumption.
         """
 
-        if cls.__concrete__:
-            if dtype is None or dtype is cls.dtype:
-                new = object.__new__(cls)
-                new.flat = cls.__flat__(data, copy)
-                return new
-        elif cls.size is None:
-            raise TypeError('shapeless types cannot instantiate objects')
-
-        dtype = dtype or cls.dtype
-        if dtype is Any or dtype is None:
-            data = list(data)
-            dtype = _dtype(data)
-
-        T = cls.__origin__[cls.shape + (dtype,)]
-        return T.from_flat(data, copy=copy)
+        raise NotImplementedError
 
     @classmethod
     def null(cls, shape=None):

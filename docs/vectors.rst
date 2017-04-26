@@ -30,7 +30,7 @@ notation in order to designate the correct vector type
 
 >>> Vec[2, int](1.0, 2)
 Vec(1, 2)
->>> Vec[2, float](1, 2)
+>>> Vec2(1, 2)
 Vec(1.0, 2.0)
 
 

@@ -1,31 +1,23 @@
-from generic import overload, convert
-from generic.op import mul
+import abc
 
 from smallvectors import Vec, asvector
 from smallvectors.core import SmallVectorsBase, \
-    AddElementWise, mAddElementWise, \
-    MulScalar, mMulScalar
-from smallvectors.core.mutability import Mutable, Immutable
+    AddElementWise, MulScalar
 from smallvectors.utils import flatten, dtype as _dtype
 
-__all__ = [
-    # Types
-    'Mat', 'mMat', 'MatAny',
-
-    # Functions
-    'asmatrix', 'asamatrix', 'asmmatrix', 'identity', 'midentity',
-]
 number = (float, int)
 
 
-class MatAny(AddElementWise, MulScalar, SmallVectorsBase):
+class Mat(metaclass=abc.ABCMeta):
     """
-    Base class for mutable and immutable matrix types
+    Base class for immutable matrix types
     """
 
     __slots__ = ()
     __parameters__ = (int, int, type)
     nrows = ncols = None
+    size = None
+    shape = None
     _square_base = None
     _mat2x2_base = None
     _mat3x3_base = None
@@ -35,54 +27,15 @@ class MatAny(AddElementWise, MulScalar, SmallVectorsBase):
         """
         Matrix transpose.
         """
-        return self.transpose()
+
+        return self.transposed()
 
     @property
     def H(self):
         """
         Hermitian transpose.
         """
-        return self.transpose().conjugate()
-
-    @classmethod
-    def __preparenamespace__(cls, params):
-        ns = SmallVectorsBase.__preparenamespace__(params)
-        try:
-            m, n, dtype = params
-        except ValueError:
-            pass
-        else:
-            if (m, n) not in [(2, 2), (3, 3)]:
-                ns['__slots__'] = 'flat'
-        return ns
-
-    # noinspection PyUnresolvedReferences
-    @classmethod
-    def __preparebases__(cls, params):
-        N, M, dtype = params
-
-        if isinstance(N, int) and isinstance(M, int):
-            if N == M == 2:
-                return cls._mat2x2_base, cls
-            elif N == M == 3:
-                return cls._mat3x3_base, cls
-            elif M == N:
-                return cls._square_base, cls
-
-        return cls,
-
-    @staticmethod
-    def __finalizetype__(cls):
-        SmallVectorsBase.__finalizetype__(cls)
-        if cls.shape:
-            cls.nrows, cls.ncols = cls.shape
-        else:
-            cls.nrows = cls.ncols = None
-
-    @classmethod
-    def __abstract_new__(cls, *args, dtype=None):
-        flat, nrows, ncols = flatten(args, 2)
-        return cls[nrows, ncols].from_flat(flat)
+        return self.transposed().conjugate()
 
     @classmethod
     def from_dict(cls, D):
@@ -102,7 +55,7 @@ class MatAny(AddElementWise, MulScalar, SmallVectorsBase):
         return cls.from_flat(data)
 
     @classmethod
-    def from_rows(cls, rows, dtype=None):
+    def from_rows(cls, rows):
         """
         Build matrix from a sequence of row vectors.
         """
@@ -110,14 +63,14 @@ class MatAny(AddElementWise, MulScalar, SmallVectorsBase):
         data, M, N = flatten(rows, 2)
         if (M, N) != cls.shape:
             if cls.size is None:
-                return cls[M, N, cls.dtype].from_flat(data, dtype)
+                return cls.from_flat(data)
             msg = ('data shape %s is not consistent with matrix type %s' %
                    ((M, N), cls.shape))
             raise ValueError(msg)
-        return cls.from_flat(data, dtype=dtype)
+        return cls.from_flat(data)
 
     @classmethod
-    def from_cols(cls, cols, dtype=None):
+    def from_cols(cls, cols):
         """
         Build matrix from a sequence of column vectors.
         """
@@ -129,22 +82,15 @@ class MatAny(AddElementWise, MulScalar, SmallVectorsBase):
 
         if (M, N) != cls.shape:
             if cls.size is None:
-                return cls[M, N, cls.dtype].from_flat(data, dtype)
+                return cls.from_flat(data)
             msg = ('data shape %s is not consistent with matrix type %s' %
                    ((M, N), cls.shape))
             raise ValueError(msg)
-        return cls.from_flat(data, dtype=dtype)
-
-    # noinspection PyPropertyAccess,PyUnresolvedReferences
-    def __init__(self, *args):
-        flat, N, M = flatten(args, 2)
-        self.flat = self.__flat__(flat, copy=False)
-        if N != self.nrows or M != self.ncols:
-            raise ValueError('data has an invalid shape: %s' % repr((N, M)))
+        return cls.from_flat(data)
 
     def __repr__(self):
         data = ', '.join([repr(list(x)) for x in self])
-        return '%s(%s)' % (self.__origin__.__name__, data)
+        return '%s(%s)' % (self.__class__.__name__, data)
 
     def __str__(self):
         def fmt(x):
@@ -187,21 +133,20 @@ class MatAny(AddElementWise, MulScalar, SmallVectorsBase):
             return asvector([u.dot(other) for u in self.rows()])
 
         elif isinstance(other, number):
-            return self.from_flat([x * other for x in self.flat], copy=False)
+            return self.from_flat([x * other for x in self.flat])
 
         elif isinstance(other, Mat):
             cols = list(other.cols())
             rows = list(self.rows())
             data = sum([[u.dot(v) for u in cols] for v in rows], [])
-            cls = self.__origin__[len(rows), len(cols), _dtype(data)]
-            return cls.from_flat(data, copy=False)
+            return type(self).from_flat(data)
 
         else:
             return NotImplemented
 
     def __rmul__(self, other):
         if isinstance(other, number):
-            return self.from_flat([x * other for x in self.flat], copy=False)
+            return self.from_flat([x * other for x in self.flat])
         else:
             other = asvector(other)
             return asvector([u.dot(other) for u in self.cols()])
@@ -398,7 +343,7 @@ class MatAny(AddElementWise, MulScalar, SmallVectorsBase):
 
         return self.from_flat(data)
 
-    def transpose(self):
+    def transposed(self):
         """
         Return the transposed matrix
 
@@ -410,13 +355,13 @@ class MatAny(AddElementWise, MulScalar, SmallVectorsBase):
             |1  2|
             |3  4|
 
-            >>> print(matrix.transpose())
+            >>> print(matrix.transposed())
             |1  3|
             |2  4|
 
             ``matrix.T`` is an alias to the transpose() method
 
-            >>> matrix.T == matrix.transpose()
+            >>> matrix.T == matrix.transposed()
             True
         """
 
@@ -424,7 +369,7 @@ class MatAny(AddElementWise, MulScalar, SmallVectorsBase):
         if N == M:
             return self.from_cols(self.rows())
         else:
-            return self.__origin__[M, N, self.dtype].from_cols(self.rows())
+            return type(self).from_cols(self.rows())
 
     # Shape transformations
     def __raise_bad_shape(self, data, s1):
@@ -458,10 +403,7 @@ class MatAny(AddElementWise, MulScalar, SmallVectorsBase):
         else:
             index = M * index
             flat = flat[:index] + extra + flat[index:]
-
-        # FIXME: infer correct dtype
-        T = self.__origin__[N, M, self.dtype]
-        return T.from_flat(flat, copy=False)
+        return Mat.from_flat(flat)
 
     def append_col(self, data, index=None):
         """
@@ -488,8 +430,7 @@ class MatAny(AddElementWise, MulScalar, SmallVectorsBase):
                 cols.insert(index, list(data))
             M += 1
 
-        T = self.__origin__[N, M, self.dtype]
-        return T.from_cols(cols)
+        return Mat.from_cols(cols)
 
     def drop_col(self, idx=-1):
         """
@@ -502,8 +443,7 @@ class MatAny(AddElementWise, MulScalar, SmallVectorsBase):
         M, N = self.shape
         data = list(self.cols())
         col = data.pop(idx)
-        T = self.__origin__[M, N - 1, self.dtype]
-        return T.from_cols(data), col
+        return Mat.from_cols(data), col
 
     def drop_row(self, idx=-1):
         """
@@ -516,8 +456,7 @@ class MatAny(AddElementWise, MulScalar, SmallVectorsBase):
         M, N = self.shape
         data = list(self.rows())
         row = data.pop(idx)
-        T = self.__origin__[M - 1, N, self.dtype]
-        return T.from_rows(data), row
+        return Mat.from_rows(data), row
 
     def select_cols(self, *indexes):
         """
@@ -526,8 +465,7 @@ class MatAny(AddElementWise, MulScalar, SmallVectorsBase):
 
         L = list(self.cols())
         data = [L[i] for i in indexes]
-        T = self.__origin__[self.nrows, len(data), self.dtype]
-        return T.from_cols(data)
+        return Mat.from_cols(data)
 
     def select_rows(self, *indexes):
         """
@@ -537,8 +475,7 @@ class MatAny(AddElementWise, MulScalar, SmallVectorsBase):
 
         L = list(self.rows())
         data = [L[i] for i in indexes]
-        T = self.__origin__[len(data), self.ncols, self.dtype]
-        return T.from_rows(data)
+        return Mat.from_rows(data)
 
     def _zip_other(self, other):
         """
@@ -558,150 +495,3 @@ class MatAny(AddElementWise, MulScalar, SmallVectorsBase):
         return zip(self.flat, other.flat)
 
 
-class Mat(MatAny, Immutable):
-    """
-    A immutable matrix type.
-    """
-
-    __slots__ = ()
-
-
-class mMat(MatAny, mAddElementWise, mMulScalar, Mutable):
-    """
-    A mutable Mat.
-    """
-
-    __slots__ = ()
-
-    def iswap_cols(self, i, j):
-        """
-        Swap columns i and j *INPLACE*"""
-
-        if i != j:
-            M = self.nrows
-            self.flat[i::M], self.flat[j::M] = self.flat[j::M], self.flat[i::M]
-
-    def iswap_rows(self, i, j):
-        """Swap rows i and j *INPLACE*"""
-
-        if i != j:
-            self[i], self[j] = self[j], self[i]
-
-    def isum_row(self, i, vec):
-        """
-        Adds the contents of a vector into the i-th row *INPLACE*
-        """
-
-        N, M, dtype = self.__parameters__
-        if i < 0:
-            i = M - i
-        data = self.flat
-        for j in range(M):
-            data[i * M + j] = convert(data[i * M + j] + vec[j], dtype)
-
-    def isum_col(self, i, vec):
-        """
-        Adds the contents of a vector into the i-th column *INPLACE*.
-        """
-
-        N, M, dtype = self.__parameters__
-        if i < 0:
-            i = N - i
-        data = self.flat
-        for j in range(N):
-            data[j * M + i] = convert(data[j * M + i] + vec[j], dtype)
-
-    def imul_row(self, i, value):
-        """
-        Multiply the i-th row by the given value *INPLACE*.
-        """
-
-        N, M, dtype = self.__parameters__
-        if i < 0:
-            i = M - i
-        data = self.flat
-        for j in range(M):
-            data[i * N + j] = convert(data[i * N + j] * value, dtype)
-
-    def imul_col(self, i, value):
-        """
-        Multiply the i-th column by the given value *INPLACE*.
-        """
-
-        N, M, dtype = self.__parameters__
-        if i < 0:
-            i = N - i
-        data = self.flat
-        for j in range(N):
-            data[j * N + i] = convert(data[j * N + i] * value, dtype)
-
-    def __setitem__(self, idx, value):
-        if isinstance(idx, tuple):
-            i, j = idx
-            self.flat[i * self.ncols + j] = convert(value, self.dtype)
-        elif isinstance(idx, int):
-            M = self.ncols
-            start = idx * M
-            dtype = self.dtype
-            self.flat[start:start + M] = [convert(x, dtype) for x in value]
-
-
-# Overloads and promotions
-@overload(mul, (Mat, Vec))
-def mul_matrix_Vec(M, v):
-    return NotImplemented
-
-
-@overload(mul, (Vec, Mat))
-def mul_Vec_matrix(v, M):
-    return NotImplemented
-
-
-# Matrices conversions
-def asmatrix(m):
-    """
-    Return object as an immutable matrix.
-    """
-
-    if isinstance(m, Mat):
-        return m
-    else:
-        return Mat(*m)
-
-
-def asmmatrix(m):
-    """
-    Return object as a mutable matrix.
-    """
-
-    if isinstance(m, mMat):
-        return m
-    else:
-        return mMat(*m)
-
-
-def asamatrix(m):
-    """
-    Return object as a matrix (mutable or immutable).
-    """
-
-    if isinstance(m, MatAny):
-        return m
-    else:
-        return Mat(*m)
-
-
-def identity(N, dtype=float):
-    """
-    Return an identity matrix of size N by N.
-    """
-
-    return Mat[N, N, dtype].from_diag([1] * N)
-
-
-def midentity(N, dtype=float):
-    """
-    Return a mutable identity matrix of size N by N.
-    """
-
-    return mMat[N, N, dtype].from_diag([1] * N)

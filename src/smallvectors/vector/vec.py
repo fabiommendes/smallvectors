@@ -1,35 +1,98 @@
-from smallvectors.core import Normed, mAddElementWise, mMulScalar
-from smallvectors.core.mutability import Mutable, Immutable
-from smallvectors.vector.linear import LinearAny
+import abc
+from math import sqrt, acos, pi
 
-__all__ = ['mVec', 'Vec', 'asvector', 'asmvector', 'asavector']
+from .linear import Linear
+from ..interfaces import Normed
+
+L1_NORMS = ('L1', 'l1', 'manhattan')
+L2_NORMS = (None, 'L2', 'l2', 'euclidean')
 
 
-# noinspection PyAbstractClass
-class VecAny(LinearAny, Normed):
+class Vec(Linear, Normed, metaclass=abc.ABCMeta):
     """
-    Base class for Vec and mVec
+    Base class for all VecN classes.
     """
 
     __slots__ = ()
+    _rotmat_class = None
+    ndim = 1
+    dtype = float
+
+    def __repr__(self):
+        data = ', '.join('%g' % x for x in self)
+        return '%s(%s)' % (self.__class__.__name__, data)
+
+    def __neg__(self):
+        return self * (-1)
+
+    def __add__(self, other):
+        cls = type(self)
+        if isinstance(other, (cls, list, tuple)):
+            if len(other) != len(self):
+                raise ValueError('dimensions do not match')
+            return cls(*(x + y for (x, y) in zip(self, other)))
+        return NotImplemented
+
+    def __sub__(self, other):
+        cls = type(self)
+        if isinstance(other, (cls, list, tuple)):
+            if len(other) != len(self):
+                raise ValueError('dimensions do not match')
+            return cls(*(x - y for (x, y) in zip(self, other)))
+        return NotImplemented
+
+    def __mul__(self, other):
+        if isinstance(other, (int, float)):
+            cls = type(self)
+            return cls(*(x * other for x in self))
+        return NotImplemented
+
+    def __floordiv__(self, other):
+        if isinstance(other, (int, float)):
+            cls = type(self)
+            return cls(*(x // other for x in self))
+        return NotImplemented
+
+    def __truediv__(self, other):
+        return self * (1 / other)
+
+    def __rmul__(self, other):
+        return self * other
+
+    def __radd__(self, other):
+        return self + other
+
+    def __rsub__(self, other):
+        return other + (-self)
+
+    def __abs__(self):
+        return self.norm()
+
+    def as_vector(self):
+        return self
 
     def angle(self, other):
         """
         Angle between two vectors.
         """
+        from .functions import asvector
 
         try:
             Z = other.norm()
         except AttributeError:
-            other = self._vec(other)
+            other = asvector(other)
             Z = other.norm()
 
         cos_t = self.dot(other) / (self.norm() * Z)
-        return self._acos(cos_t)
+        if cos_t >= 1.0:
+            return 0.0
+        elif cos_t <= -1.0:
+            return pi
+        return acos(cos_t)
 
-    def reflect(self, direction):
+    def reflexion(self, direction):
         """
-        Reflect vector around the given direction.
+        Return reflexion of vector over the given direction.
         """
 
         return self - 2 * (self - self.projection(direction))
@@ -42,7 +105,7 @@ class VecAny(LinearAny, Normed):
         direction = self.as_direction()
         return self.dot(direction) * direction
 
-    def clamp(self, min_length, max_length=None):
+    def clamped(self, min_length, max_length=None):
         """
         Returns a new vector in which min_length <= abs(out) <=
         max_length.
@@ -59,7 +122,7 @@ class VecAny(LinearAny, Normed):
             new_norm = min_length
 
         if new_norm != norm:
-            return self.normalize() * new_norm
+            return self.normalized() * new_norm
         else:
             return self.copy()
 
@@ -73,31 +136,31 @@ class VecAny(LinearAny, Normed):
             raise ValueError('dimension mismatch: %s and %s' % (N, M))
         return sum(x * y for (x, y) in zip(self, other))
 
-    def norm(self, which=None):
+    def norm(self, norm=None):
         """
         Return the vector's norm.
         """
 
-        if which is None or which == 'euclidean':
-            return self._sqrt(sum(x * x for x in self))
-        elif which == 'max':
-            return max(map(abs, self))
-        elif which == 'minkowski':
+        if norm in L2_NORMS:
+            return sqrt(sum(x * x for x in self))
+        elif norm in L1_NORMS:
             return sum(map(abs, self))
+        elif norm == 'max':
+            return max(map(abs, self))
         else:
-            super().norm(which)
+            raise ValueError('invalid norm: %r' % norm)
 
-    def norm_sqr(self, which=None):
+    def norm_sqr(self, norm=None):
         """
         Return the squared norm.
         """
 
-        if which is None:
+        if norm in L2_NORMS:
             return sum(x * x for x in self)
         else:
-            super().norm_sqr(which)
+            return super().norm_sqr(norm)
 
-    def rotate(self, rotation):
+    def rotated_by(self, rotation):
         """
         Rotate vector by the given rotation object.
         
@@ -109,110 +172,9 @@ class VecAny(LinearAny, Normed):
         angle of rotation.   
         """
 
-        if isinstance(rotation, self._rotmat):
+        if isinstance(rotation, self._rotmat_class):
             return rotation * self
 
         tname = type(self).__name__
         msg = 'invalid rotation object for %s: %r' % (tname, rotation)
         raise TypeError(msg)
-
-
-class Vec(VecAny, Immutable):
-    """
-    Base class for all immutable vector types. Each dimension and type have
-    its own related class.
-    """
-
-    __slots__ = ()
-
-
-class mVec(VecAny, mAddElementWise, mMulScalar, Mutable):
-    """
-    A mutable vector.
-    """
-
-    __slots__ = ()
-
-    def irotate(self, rotation):
-        """
-        Similar to obj.rotate(...), but make changes *INPLACE*:
-        """
-
-        value = self.rotate(rotation)
-        self[:] = value
-
-    def imove(self, *args):
-        """
-        Similar to obj.move(...), but make changes *INPLACE*.
-        """
-
-        if len(args) == 1:
-            args = args[0]
-        self.__iadd__(args)
-
-    def ireflect(self, direction):
-        """
-        Reflect vector around direction *INPLACE*.
-        """
-
-        raise NotImplementedError
-
-    def iclamp(self, min_length, max_length=None):
-        """
-        Like :func:`mVec.clamp`, but make changes *INPLACE*.
-        """
-
-        if max_length is None:
-            ratio = min_length / self.norm()
-            self.__imul__(ratio)
-
-        norm = new_norm = self.norm()
-        if norm > max_length:
-            new_norm = max_length
-        elif norm < min_length:
-            new_norm = min_length
-
-        if new_norm != norm:
-            self.__imul__(new_norm / norm)
-
-
-# Helper functions
-def _assure_mutable_set_coord(obj):
-    if isinstance(obj, Immutable):
-        raise AttributeError('cannot set coordinate of immutable object')
-
-
-# Vector conversions
-def asvector(obj):
-    """
-    Return object as an immutable vector.
-    """
-
-    if isinstance(obj, Vec):
-        return obj
-    else:
-        return Vec(*obj)
-
-
-def asmvector(obj):
-    """
-    Return object as a mutable vector.
-    """
-
-    if isinstance(obj, mVec):
-        return obj
-    else:
-        return mVec(*obj)
-
-
-def asavector(obj):
-    """
-    Return object as a mutable or immutable vector.
-    
-    Non-Vec objects are converted to immutable vectors.
-    """
-
-    if isinstance(obj, VecAny):
-        return obj
-    else:
-        return Vec(*obj)

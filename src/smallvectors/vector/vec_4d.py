@@ -1,55 +1,31 @@
-from generic import convert
-
-from .vec import _assure_mutable_set_coord
-from .vec_3d import Vec3D
-from .vec_nd import VecND
+from .vec import Vec
 
 
-class Vec4D(VecND):
+class Vec4(Vec):
     """
-    Vector functions that only works in 4D.
-
-    These functions are inserted to all Vec[4, ...] classes upon class
-    creation.
+    A 4D vector.
     """
 
     __slots__ = ('_x', '_y', '_z', '_w')
 
-    @property
-    def w(self):
-        return self._w
+    size = 4
+    shape = (4,)
 
-    @w.setter
-    def w(self, value):
-        _assure_mutable_set_coord(self)
-        self._w = value
-
-    x = x0 = Vec3D.x
-    y = x1 = Vec3D.y
-    z = x2 = Vec3D.z
-    x3 = w
+    x0 = x = property(lambda self: self._x)
+    x1 = y = property(lambda self: self._y)
+    x2 = z = property(lambda self: self._z)
+    x3 = w = property(lambda self: self._w)
 
     @classmethod
-    def from_flat(cls, data, copy=True, dtype=None, shape=None):
-        cls._check_params(shape, dtype)
+    def from_flat(cls, data):
         x, y, z, w = data
-        return cls._from_coords_unsafe(x, y, z, w)
-
-    @classmethod
-    def _from_coords_unsafe(cls, x, y, z, w):
-        new = object.__new__(cls)
-        new._x = x
-        new._y = y
-        new._z = z
-        new._w = w
-        return new
+        return Vec4(x, y, z, w)
 
     def __init__(self, x, y, z, w):
-        dtype = self.dtype
-        self._x = convert(x, dtype)
-        self._y = convert(y, dtype)
-        self._z = convert(z, dtype)
-        self._w = convert(w, dtype)
+        self._x = x + 0.0
+        self._y = y + 0.0
+        self._z = z + 0.0
+        self._w = w + 0.0
 
     def __len__(self):
         return 4
@@ -60,24 +36,39 @@ class Vec4D(VecND):
         yield self._z
         yield self._w
 
-    def __getitem_simple__(self, idx):
-        if idx == 0:
+    def __getitem__(self, idx):
+        if idx in (0, -4):
             return self._x
-        elif idx == 1:
+        elif idx in (1, -3):
             return self._y
-        elif idx == 2:
+        elif idx in (2, -2):
             return self._z
-        elif idx == 3:
+        elif idx in (3, -1):
             return self._w
+        elif isinstance(idx, slice):
+            return [self._x, self._y, self._z, self._w][idx]
+        else:
+            raise IndexError(idx)
 
-    def __setitem__(self, idx, value):
-        _assure_mutable_set_coord(self)
-        value = convert(value, self.dtype)
-        if idx == 0:
-            self._x = value
-        elif idx == 1:
-            self._y = value
-        elif idx == 2:
-            self._z = value
-        elif idx == 3:
-            self._w = value
+    def __eq__(self, other):
+        if isinstance(other, (Vec4, list, tuple)):
+            try:
+                x, y, z, w = other
+            except ValueError:
+                return False
+            return (self._x == x and self._y == y and self._z == z and
+                    self._w == w)
+        return NotImplemented
+
+    def copy(self, x=None, y=None, z=None, w=None, **kwargs):
+        if kwargs:
+            return super().copy(x=x, y=y, z=z, **kwargs)
+        if x is None:
+            x = self._x
+        if y is None:
+            y = self._y
+        if z is None:
+            z = self._z
+        if w is None:
+            w = self._w
+        return Vec4(x, y, z, w)

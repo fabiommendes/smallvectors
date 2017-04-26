@@ -1,84 +1,30 @@
-from smallvectors import SmallVectorsBase, MulScalar, AddElementWise
-from smallvectors.core.mutability import Mutable
-from smallvectors.utils import dtype as _dtype
-from smallvectors.vector import DIMENSION_BASES
+import abc
+
+import collections
+from math import sqrt
 
 
-# noinspection PyAbstractClass
-class LinearAny(AddElementWise, MulScalar, SmallVectorsBase):
+class Linear(collections.Sequence, metaclass=abc.ABCMeta):
     """
     Common implementations for Vec and Point types
     """
 
+    size = None
+    _vector_class = None
+    _direction_class = None
+    _point_class = None
     __slots__ = ()
-    __parameters__ = (int, type)
-    __abstract__ = True
+    flat = property(lambda self: list(self))
 
     @classmethod
-    def __preparebases__(cls, params):
-        try:
-            bases = (DIMENSION_BASES[params[0]], cls)
-        except KeyError:
-            bases = (cls,)
-        return bases
-
-    @classmethod
-    def __preparenamespace__(cls, params):
-        ns = SmallVectorsBase.__preparenamespace__(params)
-        if isinstance(params[0], int) and params[0] > 4:
-            ns.update(__slots__='flat')
-        return ns
-
-    @staticmethod
-    def __finalizetype__(cls):
-        SmallVectorsBase.__finalizetype__(cls)
-
-        # Make all x, y, z, etc property accessors. Mutable objects have
-        # read/write accessors, while immutable types have only the read
-        # accessor.
-        def getter(i):
-            return lambda self: self[i]
-
-        def setter(i):
-            return lambda self, value: self.__setitem__(i, value)
-
-        for i in range(cls.size or 0):
-            prop = property(getter(i))
-            if issubclass(cls, Mutable):
-                prop = prop.setter(setter(i))
-
-            attr = 'x%i' % i
-            if not hasattr(cls, attr):
-                setattr(cls, attr, prop)
-            if i < 4:
-                attr = ('x', 'y', 'z', 'w')[i]
-                if not hasattr(cls, attr):
-                    setattr(cls, attr, prop)
-
-    @classmethod
-    def __abstract_new__(cls, *args, dtype=None):  # @NoSelf
-        """
-        This function is called when user tries to instantiate an abstract
-        type. It just finds the proper concrete type and instantiate it.
-        """
-        if dtype is None:
-            dtype = _dtype(args)
-        return cls[len(args), dtype](*args)
-
-    def __getitem_simple__(self, idx):
-        return self.flat[idx]
-
-    def __vector__(self, v):
-        return NotImplemented
-
-    def __direction__(self, v):
-        return NotImplemented
-
-    def __point__(self, v):
-        return NotImplemented
+    def from_flat(cls, data):
+        return cls(*data)
 
     def __len__(self):
         return self.size
+
+    def __pos__(self):
+        return self
 
     # Representation and conversions
     def as_vector(self):
@@ -86,22 +32,23 @@ class LinearAny(AddElementWise, MulScalar, SmallVectorsBase):
         Returns a copy of object as a vector
         """
 
-        return self.__vector__(*self)
+        return self._vector_class(*self)
 
     def as_direction(self):
         """
         Returns a normalize copy of object as a direction
         """
 
-        return self.__direction__(*self)
+        return self._direction_class(*self)
 
     def as_point(self):
         """
         Returns a copy of object as a point.
         """
 
-        return self.__point__(*self)
+        return self._point_class(*self)
 
+    @abc.abstractmethod
     def copy(self, x=None, y=None, z=None, w=None, **kwds):
         """
         Return a copy possibly overriding some components.
@@ -143,7 +90,7 @@ class LinearAny(AddElementWise, MulScalar, SmallVectorsBase):
             raise IndexError('invalid dimensions: %s and %s' % (N, M))
 
         deltas = (x - y for (x, y) in zip(self, other))
-        return self._sqrt(sum(x * x for x in deltas))
+        return sqrt(sum(x * x for x in deltas))
 
     def lerp(self, other, weight=0.5):
         """
@@ -157,22 +104,22 @@ class LinearAny(AddElementWise, MulScalar, SmallVectorsBase):
         if not 0 <= weight <= 1:
             raise ValueError('weight must be between 0 and 1')
 
-        return (other - self) * weight + self
+        return (other.as_vector() - self) * weight + self
 
     def middle(self, other):
         """
         The midpoint to `other`. The same as ``obj.lerp(other, 0.5)``.
         """
 
-        return (self + other) / 2
+        return (self + other.as_vector()) / 2
 
-    def move(self, *args):
+    def displaced_by(self, *args):
         """
         Displace object by the given coordinates.
 
         This is equivalent to a vector sum.
         """
 
-        if len(args) == 1:
+        if len(args) == 1 and isinstance(args[0], Linear):
             args = args[0]
         return self + args

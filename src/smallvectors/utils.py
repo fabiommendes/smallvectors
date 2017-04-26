@@ -118,17 +118,16 @@ def sign(x):
 
 def simeq(u, v, tol=1e-6):
     """
-    True if u and v are almost equal
+    True if u and v are almost equal.
     """
 
     try:
-        return u.almost_equal(v)
+        return u.almost_equal(v, tol)
     except AttributeError:
         try:
-            return v.almost_equal(u)
+            return v.almost_equal(u, tol)
         except AttributeError:
             pass
-    delta = tol = 1
     if u == v:
         return True
     return abs(u - v) <= tol

@@ -1,42 +1,25 @@
-from generic import convert
+from math import sin, cos, sqrt, atan2
 
-from .vec import Vec, _assure_mutable_set_coord
-from .vec_2d import Vec2D
-from .vec_nd import VecND
+from .vec import Vec
 
 
-class Vec3D(VecND):
+class Vec3(Vec):
     """
-    Vector functions that only work in 3D.
-
-    These functions are inserted to all Vec[3, ...] classes upon class
-    creation.
+    A 3D vector.
     """
 
     __slots__ = ('_x', '_y', '_z')
+    size = 3
+    shape = (3,)
 
-    @property
-    def z(self):
-        return self._z
-
-    @z.setter
-    def z(self, value):
-        _assure_mutable_set_coord(value)
-        self._z = value
-
-    x = x0 = Vec2D.x
-    y = x1 = Vec2D.y
-    x3 = z
+    x0 = x = property(lambda self: self._x)
+    x1 = y = property(lambda self: self._y)
+    x2 = z = property(lambda self: self._z)
 
     @classmethod
-    def from_flat(cls, data, copy=True, dtype=None, shape=None):
-        if shape is not None and shape != (3,):
-            raise TypeError('Vec3D cannot have a shape different from (3,)')
-        if dtype is None or dtype is cls.dtype:
-            x, y, z = data
-            return cls._from_coords_unsafe(x, y, z)
-        else:
-            return cls._from_coords_unsafe(*(convert(x, dtype) for x in data))
+    def from_flat(cls, data):
+        x, y, z = data
+        return Vec3(x, y, z)
 
     @classmethod
     def from_spherical(cls, radius, phi=0, theta=0):
@@ -44,10 +27,10 @@ class Vec3D(VecND):
         Create vector from spherical coordinates.
         """
 
-        r = radius * cls._sin(phi)
-        x = r * cls._cos(theta)
-        y = r * cls._sin(theta)
-        z = r * cls._cos(phi)
+        r = radius * sin(phi)
+        x = r * cos(theta)
+        y = r * sin(theta)
+        z = r * cos(phi)
         return cls(x, y, z)
 
     @classmethod
@@ -56,23 +39,14 @@ class Vec3D(VecND):
         Create vector from cylindrical coordinates.
         """
 
-        x = radius * cls._cos(theta)
-        y = radius * cls._sin(theta)
+        x = radius * cos(theta)
+        y = radius * sin(theta)
         return cls(x, y, z)
 
-    @classmethod
-    def _from_coords_unsafe(cls, x, y, z):
-        new = object.__new__(cls)
-        new._x = x
-        new._y = y
-        new._z = z
-        return new
-
     def __init__(self, x, y, z):
-        dtype = self.dtype
-        self._x = convert(x, dtype)
-        self._y = convert(y, dtype)
-        self._z = convert(z, dtype)
+        self._x = x + 0.0
+        self._y = y + 0.0
+        self._z = z + 0.0
 
     def __len__(self):
         return 3
@@ -82,25 +56,59 @@ class Vec3D(VecND):
         yield self._y
         yield self._z
 
-    def __getitem_simple__(self, idx):
-        if idx == 0:
+    def __getitem__(self, idx):
+        if idx in (0, -3):
             return self._x
-        elif idx == 1:
+        elif idx in (1, -2):
             return self._y
-        elif idx == 2:
+        elif idx in (2, -1):
             return self._z
+        elif isinstance(idx, slice):
+            return [self._x, self._y, self._z][idx]
         else:
-            raise RuntimeError('invalid integer index: %s' % idx)
+            raise IndexError(idx)
 
-    def __setitem__(self, idx, value):
-        _assure_mutable_set_coord(self)
-        value = convert(value, self.dtype)
-        if idx == 0:
-            self._x = value
-        elif idx == 1:
-            self._y = value
-        elif idx == 2:
-            self._z = value
+    def __eq__(self, other):
+        if isinstance(other, (Vec3, list, tuple)):
+            try:
+                x, y, z = other
+            except ValueError:
+                return False
+            return self._x == x and self._y == y and self._z == z
+        return NotImplemented
+
+    def copy(self, x=None, y=None, z=None, **kwargs):
+        if kwargs:
+            return super().copy(x=x, y=y, z=z, **kwargs)
+        if x is None:
+            x = self._x
+        if y is None:
+            y = self._y
+        if z is None:
+            z = self._z
+        return Vec3(x, y, z)
+
+    def spherical(self):
+        """
+        Return rho, phi, theta spherical coordinates, where rho is the vector
+        length, phi is the angle with the z-axis and theta is the angle the
+        projection in the xy plane makes with the x axis.
+        """
+
+        x, y, z = self
+        r2 = x * x + y * y
+        r = sqrt(r2)
+        return sqrt(r2 + z * z), atan2(r, z), atan2(x, y)
+
+    def cylindrical(self):
+        """
+        Return the r, theta, z cylindrical coordinates, where r is the length
+        of the projection in the xy-plane, theta is the angle of this projection
+        with the x axis and z is the z coordinate of the vector.
+        """
+
+        x, y, z = self
+        return sqrt(x * x + y * y), atan2(x, y), z
 
     def cross(self, other):
         """
@@ -109,4 +117,4 @@ class Vec3D(VecND):
 
         x, y, z = self
         a, b, c = other
-        return Vec(y * c - z * b, z * a - x * c, x * b - y * a)
+        return Vec3(y * c - z * b, z * a - x * c, x * b - y * a)

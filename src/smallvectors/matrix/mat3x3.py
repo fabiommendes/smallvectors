@@ -23,7 +23,7 @@ class Mat3x3(MatSquare):
     def diag(self):
         return Vec[3, self.dtype](self.flat[0], self.flat[4], self.flat[8])
 
-    def transpose(self):
+    def transposed(self):
         a, b, c, d, e, f, g, h, i = self.flat
         return self.from_flat([a, d, g,
                                b, e, h,
@@ -61,7 +61,7 @@ class Mat3x3(MatSquare):
 
 
 class mMat3x3:
-    def itranspose(self):
+    def transpose(self):
         """
         Transpose matrix *INPLACE**:
         """

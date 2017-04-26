@@ -1,9 +1,12 @@
 import sys
+import types
+from abc import abstractmethod
+from functools import lru_cache
 
 from generic import parametric
 
 
-class complementary_descriptor:
+class complementary_mutable_class_descriptor:
     def __init__(self, attr):
         self.attr = attr
 
@@ -11,12 +14,12 @@ class complementary_descriptor:
         try:
             return cls.__dict__[self.attr]
         except KeyError:
-            other = get_complementary(cls)
+            other = get_complementary_by_mutability(cls)
             setattr(cls, self.attr, other)
             return other
 
 
-class setter_descriptor:
+class auto_class_setter_descriptor:
     def __init__(self, attr):
         self.attr = attr
 
@@ -28,43 +31,22 @@ class setter_descriptor:
             return cls
 
 
-class MutabilityAPI:
-    """
-    Common API for Mutable and Immutable classes.
-    """
-
-    __slots__ = ()
-
-    def __getstate__(self):
-        raise NotImplementedError
-
-    def is_mutable(self):
-        raise NotImplementedError
-
-    def is_immutable(self):
-        raise NotImplementedError
-
-    def mutable(self):
-        raise NotImplementedError
-
-    def immutable(self):
-        raise NotImplementedError
-
-    def copy(self):
-        raise NotImplementedError
+@lru_cache(maxsize=256)
+def get_slots(cls):
+    members = (getattr(cls, name, None) for name in dir(cls))
+    return [x for x in members if isinstance(x, types.MemberDescriptorType)]
 
 
-class Mutable(parametric.Mutable, MutabilityAPI):
+
+class Mutable(parametric.ABC):
     """
     Base class for all mutable types.
     """
 
     __slots__ = ()
-    __immutable_class__ = complementary_descriptor('__immutable_class')
-    __mutable_class__ = setter_descriptor('__mutable_class')
-
-    def __getstate__(self):
-        return NotImplemented
+    __immutable_class__ = complementary_mutable_class_descriptor(
+        '__immutable_class')
+    __mutable_class__ = auto_class_setter_descriptor('__mutable_class')
 
     def is_mutable(self):
         """
@@ -92,24 +74,28 @@ class Mutable(parametric.Mutable, MutabilityAPI):
         Return an immutable copy of object.
         """
 
-        cls = self.__immutable_class__
-        return cls(*self.__getstate__())
+        new = object.__new__(self.__immutable_class__)
+        new.__setstate__(self.__getstate__())
+        return new
 
+    @abstractmethod
     def copy(self):
+        """
+        Return a copy.
+        """
+
         return NotImplemented
 
 
-class Immutable(parametric.Immutable, MutabilityAPI):
+class Immutable(parametric.ABC):
     """
     Base class for all immutable types.
     """
 
     __slots__ = ()
-    __mutable_class__ = complementary_descriptor('__mutable_class')
-    __immutable_class__ = setter_descriptor('__immutable_class')
-
-    def __getstate__(self):
-        return NotImplemented
+    __mutable_class__ = complementary_mutable_class_descriptor(
+        '__mutable_class')
+    __immutable_class__ = auto_class_setter_descriptor('__immutable_class')
 
     def is_mutable(self):
         """
@@ -130,8 +116,9 @@ class Immutable(parametric.Immutable, MutabilityAPI):
         Return a mutable copy of object.
         """
 
-        cls = self.__mutable_class__
-        return cls(*self.__getstate__())
+        new = object.__new__(self.__immutable_class__)
+        new.__setstate__(self.__getstate__())
+        return new
 
     def immutable(self):
         """
@@ -141,10 +128,14 @@ class Immutable(parametric.Immutable, MutabilityAPI):
         return self
 
     def copy(self):
+        """
+        Immutable objets do not have to be copied.
+        """
+
         return self
 
 
-def get_complementary(cls):
+def get_complementary_by_mutability(cls):
     """
     Return mutable from immutable and vice-versa.
     """
@@ -177,3 +168,31 @@ def get_complementary(cls):
         return complementary_origin
     else:
         return complementary_origin[cls.__parameters__]
+
+
+#
+# Register classes
+#
+class MutabilityAPI(parametric.ABC):
+    """
+    Abstract class that defines the MutabilityAPI interface.
+    """
+
+    # We use monkey-patching to reduce one degree in the class hierarchy
+    def __getstate__(self):
+        cls = self.__class__
+        return [slot.__get__(self, cls) for slot in get_slots(cls)]
+
+    def __setstate__(self, state):
+        cls = type(self.__class__)
+        for slot, value in zip(get_slots(cls), state):
+            slot.__set__(self, value)
+
+Mutable.__getstate__ = MutabilityAPI.__getstate__
+Immutable.__getstate__ = MutabilityAPI.__getstate__
+Mutable.__setstate__ = MutabilityAPI.__setstate__
+Immutable.__setstate__ = MutabilityAPI.__setstate__
+MutabilityAPI.register(Mutable)
+MutabilityAPI.register(Immutable)
+parametric.Mutable.register(Mutable)
+parametric.Immutable.register(Immutable)

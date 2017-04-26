@@ -4,11 +4,7 @@ from smallvectors.core import ABC
 from smallvectors.utils import shape as _shape
 
 
-def slicerange(slice, obj):
-    """
-    Return a range from a slice.
-    """
-
+def range_from_slice(slice, obj):
     start = slice.start or 0
     stop = slice.stop
     step = slice.step or 1
@@ -41,7 +37,7 @@ class Sequentiable(ABC):
     def __init__(self, *args):
         """
         Directly called upon instantiation of concrete subtypes. (e.g.: at
-        Vec[2, float](1, 2) rather than Vec(1, 2))."""
+        Vec2(1, 2) rather than Vec(1, 2))."""
 
         dtype = self.dtype
         if dtype is None:
@@ -70,7 +66,7 @@ class Sequentiable(ABC):
                 return self[size + key]
 
         elif isinstance(key, slice):
-            return [self[i] for i in slicerange(key, self)]
+            return [self[i] for i in range_from_slice(key, self)]
 
         else:
             raise TypeError('invalid index: %r' % key)
@@ -87,6 +83,9 @@ class Sequentiable(ABC):
 
     def __getstate__(self):
         return tuple(self)
+
+    def __setstate__(self, state):
+        self.__init__(*state)
 
     def __getitem_simple__(self, key):
         for i, x in zip(self, range(len(self))):

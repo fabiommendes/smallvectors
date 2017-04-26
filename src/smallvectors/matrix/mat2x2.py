@@ -1,77 +1,49 @@
-from generic import convert
-
-from smallvectors import FlatView, Vec
-from smallvectors.matrix.square import MatSquare
+from smallvectors import Vec, Vec2
+from .square import MatSquare
 
 
 class Mat2x2(MatSquare):
     __slots__ = ('_a', '_b', '_c', '_d')
+    size = 2
+    shape = (2, 2)
+    nrows = ncols = 2
 
     @classmethod
-    def from_flat(cls, data, copy=True, dtype=None, shape=None):
-        if cls.__concrete__ and dtype is None:
-            a, b, c, d = data
-            dtype = cls.dtype
-            new = object.__new__(cls)
-            new._a = convert(a, dtype)
-            new._b = convert(b, dtype)
-            new._c = convert(c, dtype)
-            new._d = convert(d, dtype)
-            return new
-        return super(Mat2x2, cls).from_flat(data, copy=copy, dtype=dtype)
+    def from_flat(cls, data):
+        a, b, c, d = data
+        new = object.__new__(cls)
+        new._a = a + 0.0
+        new._b = b + 0.0
+        new._c = c + 0.0
+        new._d = d + 0.0
+        return new
 
     @property
     def flat(self):
-        return FlatView(self)
+        return [self._a, self._b, self._c, self._d]
 
     def __init__(self, row1, row2):
-        dtype = self.dtype
         a, b = row1
         c, d = row2
-        self._a = convert(a, dtype)
-        self._b = convert(b, dtype)
-        self._c = convert(c, dtype)
-        self._d = convert(d, dtype)
-
-    def __flatiter__(self):
-        yield self._a
-        yield self._b
-        yield self._c
-        yield self._d
-
-    def __flatgetitem__(self, i):
-        if i == 0:
-            return self._a
-        elif i == 1:
-            return self._b
-        elif i == 2:
-            return self._c
-        elif i == 3:
-            return self._d
-        else:
-            raise IndexError(i)
-
-    def __flatsetitem__(self, i, value):
-        if i == 0:
-            self._a = convert(value, self.dtype)
-        elif i == 1:
-            self._b = convert(value, self.dtype)
-        elif i == 2:
-            self._c = convert(value, self.dtype)
-        elif i == 3:
-            self._d = convert(value, self.dtype)
-        else:
-            raise IndexError(i)
+        self._a = a + 0.0
+        self._b = b + 0.0
+        self._c = c + 0.0
+        self._d = d + 0.0
 
     def __iter__(self):
-        vec = Vec[2, self.dtype]
-        yield vec(self._a, self._b)
-        yield vec(self._c, self._d)
+        yield Vec2(self._a, self._b)
+        yield Vec2(self._c, self._d)
+
+    def __eq__(self, other):
+        if isinstance(other, (Mat2x2, list, tuple)):
+            a, b = self
+            u, v = other
+            return a == u and b == v
+        return NotImplemented
 
     def cols(self):
-        vec = Vec[2, self.dtype]
-        yield vec(self._a, self._c)
-        yield vec(self._b, self._d)
+        yield Vec2(self._a, self._c)
+        yield Vec2(self._b, self._d)
 
     def items(self):
         yield (0, 0), self._a
@@ -86,14 +58,14 @@ class Mat2x2(MatSquare):
         return self._a + self._d
 
     def diag(self):
-        return Vec[2, self.dtype](self._a, self._d)
+        return Vec2(self._a, self._d)
 
     def inv(self):
         det = self.det()
-        return self._mat([self._d / det, -self._b / det],
-                         [-self._c / det, self._a / det])
+        return type(self)([self._d / det, -self._b / det],
+                          [-self._c / det, self._a / det])
 
-    def transpose(self):
+    def transposed(self):
         return self.__class__([self._a, self._c],
                               [self._b, self._d])
 

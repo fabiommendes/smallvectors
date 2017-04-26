@@ -4,19 +4,16 @@ from generic.parametric import ParametricMeta, Mutable as _Mutable, Any
 
 from smallvectors.core.flat import Flat, mFlat, Flatable
 from smallvectors.core.mixins import MathFunctionsMixin
-from smallvectors.core.sequentiable import Sequentiable
 from smallvectors.core.mutability import MutabilityAPI
+from smallvectors.core.sequentiable import Sequentiable
 from smallvectors.core.util import default_smallvectors_type_ns
 from smallvectors.utils import dtype as _dtype, shape as _shape
 
 
-# noinspection PyUnresolvedReferences
-# noinspection PyAbstractClass
 class SmallVectorsBase(MathFunctionsMixin,
                        Flatable,
                        Sequentiable,
                        Object,
-                       MutabilityAPI,
                        metaclass=ParametricMeta):
     """
     Base class for all smallvectors types.
@@ -103,3 +100,4 @@ class SmallVectorsBase(MathFunctionsMixin,
         return NotImplemented
 
 
+MutabilityAPI.register(SmallVectorsBase)

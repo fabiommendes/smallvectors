@@ -1,6 +1,6 @@
-from generic.parametric import ABC
-from .base import *
-from .normed import *
+from generic import ABC
 from .arithmetic import *
+from .base import *
 from .flat import Flat, mFlat, FlatView, Flatable
 from .util import mutating
+

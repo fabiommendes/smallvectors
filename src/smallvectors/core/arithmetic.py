@@ -1,3 +1,4 @@
+from itertools import zip_longest
 from numbers import Number
 
 from generic import promote_type, convert
@@ -28,15 +29,15 @@ class mAddElementWise(AddElementWise):
     """
 
     def __iadd__(self, other):
-        data = [x + y for (x, y) in zip(self.flat, other.flat)]
-        for i, x in enumerate(data):
-            self.flat[i] = convert(x, self.dtype)
+        dtype = self.dtype
+        data = (x + y for (x, y) in zip_longest(self.flat, other.flat))
+        self.flat[:] = (convert(x, dtype) for x in data)
         return self
 
     def __isub__(self, other):
-        data = [x - y for (x, y) in zip(self.flat, other.flat)]
-        for i, x in enumerate(data):
-            self.flat[i] = convert(x, self.dtype)
+        dtype = self.dtype
+        data = (x - y for (x, y) in zip(self.flat, other.flat))
+        self.flat[:] = (convert(x, dtype) for x in data)
         return self
 
 
@@ -62,15 +63,15 @@ class mMulElementWise(MulElementWise):
     """
 
     def __imul__(self, other):
-        data = [x * y for (x, y) in zip(self.flat, other.flat)]
-        for i, x in enumerate(data):
-            self.flat[i] = convert(x, self.dtype)
+        dtype = self.dtype
+        data = (x * y for (x, y) in zip(self.flat, other.flat))
+        self.flat[:] = (convert(x, dtype) for i, x in enumerate(data))
         return self
 
     def __itruediv__(self, other):
-        data = [x / y for (x, y) in zip(self.flat, other.flat)]
-        for i, x in enumerate(data):
-            self.flat[i] = convert(x, self.dtype)
+        dtype = self.dtype
+        data = (x / y for (x, y) in zip(self.flat, other.flat))
+        self.flat[:] = (convert(x, dtype) for i, x in enumerate(data))
         return self
 
     def __ifloordiv__(self, other):

@@ -151,10 +151,10 @@ class VecArray(MutableSequence):
         # FIXME: use rotation matrix
         # R = RotMat2(theta)
         if axis is None:
-            self._data[:] = [u.irotate(theta) for u in self._data]
+            self._data[:] = [u.rotated_by(theta) for u in self._data]
         else:
             v = asvector(axis)
-            self._data[:] = [v + (u - v).irotate(theta) for u in self._data]
+            self._data[:] = [v + (u - v).rotated_by(theta) for u in self._data]
 
     def move(self, x_or_delta, y=None):
         if y is not None:

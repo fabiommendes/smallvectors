@@ -2,7 +2,6 @@ import pytest
 
 from smallvectors.core.mutability import Mutable, Immutable
 from smallvectors.tests import base
-from smallvectors.tests import arithmetic
 
 
 @pytest.fixture
@@ -149,43 +148,4 @@ class TestSequentiable(ClassTester):
     def test_sequentiable_serializes_to_args(self, cls, args):
         obj = cls(*args)
         assert list(obj) == list(args)
-
-
-class TestNormedObject(ClassTester):
-    """
-    Abstract tests for normed objects.
-    """
-
-    norm = None
-    base_args__unitary = ()
-
-    def test_unit_object_has_unity_norm(self, unitary, tol):
-        assert abs(unitary.norm(self.norm) - 1.0) < tol
-        assert abs(unitary.norm_sqr(self.norm) - 1.0) < tol
-        assert unitary.is_unity(self.norm, tol=tol)
-
-    def test_doubled_object_is_not_normalized(self, unitary, tol):
-        assert abs((2 * unitary).norm() - 2) < tol
-
-    def test_unit_object_is_normalized(self, unitary, tol):
-        assert abs((unitary.normalize(self.norm) - unitary)
-                   .norm(self.norm)) < tol
-
-    def test_stretched_object_has_norm_greater_than_one(self, unitary):
-        assert (unitary * 1.1).norm(self.norm) > 1
-
-    def test_shrunk_object_has_norm_smaller_than_one(self, unitary):
-        assert (unitary * 0.9).norm(self.norm) < 1
-
-    def test_triangular_identity(self, unitary):
-        self.assert_triangular_identity(unitary, unitary, self.norm)
-        self.assert_triangular_identity(unitary, 2 * unitary, self.norm)
-        self.assert_triangular_identity(unitary, 0 * unitary, self.norm)
-
-    def test_null_vector_is_null(self, unitary):
-        assert not unitary.is_null()
-        assert (unitary * 0).is_null()
-
-    def assert_triangular_identity(self, a, b, norm):
-        assert (a + b).norm(norm) <= a.norm(norm) + b.norm(norm)
 

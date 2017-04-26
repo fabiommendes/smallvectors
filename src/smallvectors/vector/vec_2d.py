@@ -1,56 +1,35 @@
-from generic import convert, InexactError, get_conversion
+from math import sin, cos, atan2, sqrt
 
-from smallvectors.core.mutability import Mutable
-from smallvectors.vector.vec import mVec, Vec, _assure_mutable_set_coord
-from smallvectors.vector.vec_nd import VecND, Vec1D
+from .linear import Linear
+from .vec import Vec, L2_NORMS
 
 
-# noinspection PyMissingConstructor
-class Vec2D(VecND):
+class Vec2(Vec):
     """
-    Vector functions that only works in 2D.
-
-    These functions are inserted to all Vec[2, ...] classes upon class
-    creation.
+    A 2D immutable vector of floats.
     """
 
     __slots__ = ('_x', '_y')
+    size = 2
+    shape = (2,)
+    x0 = x = property(lambda self: self._x)
+    x1 = y = property(lambda self: self._y)
 
     @classmethod
-    def from_flat(cls, data, copy=True, dtype=None, shape=None):
-        cls._check_params(shape, dtype)
+    def from_flat(cls, data):
         x, y = data
-        return cls._fromcoords_unsafe(x, y)
+        return Vec2(x, y)
 
     @classmethod
     def from_polar(cls, radius, theta=0):
         """
         Create vector from polar coordinates.
         """
-        return cls(radius * cls._cos(theta), radius * cls._sin(theta))
-
-    @classmethod
-    def _fromcoords_unsafe(cls, x, y):
-        new = object.__new__(cls)
-        new._x = x
-        new._y = y
-        return new
-
-    @property
-    def y(self):
-        return self._y
-
-    @y.setter
-    def y(self, value):
-        _assure_mutable_set_coord(self)
-        self._y = convert(value, self.dtype)
-
-    x = x0 = Vec1D.x
-    x1 = y
+        return cls(radius * cos(theta), radius * sin(theta))
 
     def __init__(self, x, y):
-        self._x = convert(x, self.dtype)
-        self._y = convert(y, self.dtype)
+        self._x = x + 0.0
+        self._y = y + 0.0
 
     def __len__(self):
         return 2
@@ -59,73 +38,103 @@ class Vec2D(VecND):
         yield self._x
         yield self._y
 
-    def __getitem_simple__(self, idx):
-        if idx == 0:
+    def __getitem__(self, idx):
+        if idx in (0, -2):
             return self._x
-        elif idx == 1:
+        elif idx in (1, -1):
             return self._y
+        elif isinstance(idx, slice):
+            return [self._x, self._y][idx]
         else:
-            raise RuntimeError('invalid index for getitem_simple: %s' % idx)
+            raise IndexError(idx)
 
-    def __setitem__(self, idx, value):
-        _assure_mutable_set_coord(self)
-        value = convert(value, self.dtype)
-        if idx == 0:
-            self._x = value
-        elif idx == 1:
-            self._y = value
+    def __eq__(self, other):
+        if isinstance(other, (Vec2, list, tuple, Linear)):
+            try:
+                x, y = other
+            except ValueError:
+                return False
+            return self._x == x and self._y == y
+        return NotImplemented
 
-    def __addsame__(self, other):
-        return self._fromcoords_unsafe(self._x + other._x, self._y + other._y)
+    #
+    # Mathematical operations
+    #
+    def __add__(self, other):
+        if isinstance(other, (Vec2, tuple, list)):
+            x, y = other
+            return Vec2(self._x + x, self._y + y)
+        return NotImplemented
 
-    def __subsame__(self, other):
-        return self._fromcoords_unsafe(self._x - other._x, self._y - other._y)
+    __radd__ = __add__
+
+    def __sub__(self, other):
+        if isinstance(other, (Vec2, tuple, list, Linear)):
+            x, y = other
+            return Vec2(self._x - x, self._y - y)
+        return NotImplemented
+
+    def __rsub__(self, other):
+        if isinstance(other, (Vec2, tuple, list, Linear)):
+            x, y = other
+            return Vec2(x - self._x, y - self._y)
+        return NotImplemented
 
     def __mul__(self, other):
-        x = self._x * other
-        y = self._y * other
-        if isinstance(x, self.dtype):
-            return self._fromcoords_unsafe(x, y)
-        elif isinstance(other, self._number):
-            return self.__origin__(x, y)
-        else:
-            return NotImplemented
+        if isinstance(other, (float, int)):
+            return Vec2(self._x * other, self._y * other)
+        return NotImplemented
+
+    __rmul__ = __mul__
+
+    def __floordiv__(self, other):
+        if isinstance(other, (float, int)):
+            return Vec2(self._x // other, self._y // other)
+        return NotImplemented
 
     def __truediv__(self, other):
-        return self * (1.0 / other)
+        if isinstance(other, (float, int)):
+            return Vec2(self._x / other, self._y / other)
+        return NotImplemented
 
+    #
+    # Abstract methods
+    #
+    def copy(self, x=None, y=None, **kwargs):
+        if kwargs:
+            return super().copy(x=x, y=y, **kwargs)
+        if x is None:
+            x = self._x
+        if y is None:
+            y = self._y
+        return Vec2(x, y)
+
+    #
     # 2D specific API
-    def rotate_at(self, theta, axis):
+    #
+    def rotated_axis(self, theta, axis):
         """
         Rotate vector around given axis by the angle theta.
         """
 
         dx, dy = self - axis
-        cos_t, sin_t = self._cos(theta), self._sin(theta)
-        return self._fromcoords_unsafe(
+        cos_t, sin_t = cos(theta), sin(theta)
+        return Vec2(
             dx * cos_t - dy * sin_t + axis[0],
-            dx * sin_t + dy * cos_t + axis[1])
+            dx * sin_t + dy * cos_t + axis[1]
+        )
 
-    def rotate(self, theta):
+    def rotated_by(self, theta):
         """
-        Rotate vector by an angle theta around origin.
+        Return a rotated vector by an angle theta around origin.
         """
 
-        if isinstance(theta, self._rotmat):
+        if not isinstance(theta, (float, int)):
             return theta * self
 
-        cls = type(self)
         x, y = self
-        cos_t, sin_t = self._cos(theta), self._sin(theta)
-
-        # TODO: decent implementation of this!
-        try:
-            return cls(x * cos_t - y * sin_t, x * sin_t + y * cos_t)
-        except InexactError:
-            if isinstance(self, Mutable):
-                return mVec(x * cos_t - y * sin_t, x * sin_t + y * cos_t)
-            else:
-                return Vec(x * cos_t - y * sin_t, x * sin_t + y * cos_t)
+        cos_t, sin_t = cos(theta), sin(theta)
+        return Vec2(x * cos_t - y * sin_t, x * sin_t + y * cos_t)
 
     def cross(self, other):
         """
@@ -134,77 +143,72 @@ class Vec2D(VecND):
         """
 
         x, y = other
-        return self.x * y - self.y * x
+        return self._x * y - self._y * x
 
     def polar(self):
         """
         Return a tuple with the (radius, theta) polar coordinates.
         """
 
-        return self.norm(), self._atan2(self.y, self.x)
+        return self.norm(), atan2(self.y, self.x)
 
-    def perp(self, cw=False):
+    def perpendicular(self, ccw=True):
         """
         Return the counterclockwise perpendicular vector.
 
-        If cw is True, do the rotation in the clockwise direction.
+        If ccw is False, do the rotation in the clockwise direction.
         """
 
-        if cw:
-            return self._fromcoords_unsafe(self.y, -self.x)
+        if ccw:
+            return Vec2(-self.y, self.x)
         else:
-            return self._fromcoords_unsafe(-self.y, self.x)
+            return Vec2(self.y, -self.x)
 
+    #
     # Performance overrides
+    #
+    def dot(self, other):
+        x, y = other
+        return self._x * x + self._y * y
+
     def distance(self, other):
-        return self._sqrt((other.x - self._x) ** 2 + (other.y - self._y) ** 2)
-
-    def convert(self, dtype):
-        _float = float
-
-        if dtype is self.dtype:
-            return self
-        elif dtype is _float:
-            x = _float(self._x)
-            y = _float(self._y)
-
-            try:
-                return self.__float_root(x, y)
-            except AttributeError:
-                self_t = type(self)
-                cls = self_t.__float_root = self.__origin__[2, float]
-                return cls(x, y)
-        else:
-            conv = get_conversion(self.dtype, dtype)
-            x = conv(self._x)
-            y = conv(self._y)
-            return self.__origin__[2, dtype](x, y)
+        x, y = other
+        x -= self._x
+        y -= self._y
+        return sqrt(x * x + y * y)
 
     def angle(self, other):
         cos_t = self.dot(other)
         sin_t = self.cross(other)
-        return self._atan2(sin_t, cos_t)
+        return atan2(sin_t, cos_t)
 
-    def is_null(self):
+    def is_null(self, tol=0.0):
         if self._x == 0.0 and self._y == 0.0:
             return True
-        else:
+        elif tol == 0.0:
             return False
+        else:
+            return super().is_null(tol)
 
     def is_unity(self, norm=None, tol=1e-6):
-        if norm is None:
+        if norm in L2_NORMS:
             return abs(self._x * self._x + self._y * self._y - 1) < 2 * tol
         else:
             return super().is_unity(norm, tol)
 
     def norm(self, norm=None):
-        if norm is None or norm == 'euclidean':
-            return self._sqrt(self._x ** 2 + self._y ** 2)
+        if norm in L2_NORMS:
+            return sqrt(self._x ** 2 + self._y ** 2)
         else:
             return super().norm(norm)
 
     def norm_sqr(self, norm=None):
-        if norm is None:
+        if norm in L2_NORMS:
             return self._x ** 2 + self._y ** 2
         else:
-            return super().norm_sqr(norm)
+            value = self.norm(norm)
+            return value * value
+
+    def normalized(self, norm=None):
+        norm = self.norm(norm)
+        return Vec2(self._x / norm, self._y / norm)
