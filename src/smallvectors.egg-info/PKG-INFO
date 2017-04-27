@@ -1,6 +1,6 @@
 Metadata-Version: 1.1
 Name: smallvectors
-Version: 0.6.3
+Version: 0.7.0
 Summary: Linear algebra objects for small dimensions.
 Home-page: http://github.com/fabiommendes/smallvectors/
 Author: Fábio Macêdo Mendes

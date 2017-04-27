@@ -35,13 +35,6 @@ class MatrixInterface:
         mat = self.base_cls.from_dict({})
         assert mat == null
 
-    @pytest.mark.skip
-    def test_create_from_dict(self, null, shape):
-        m, n = shape
-        mat = self.base_cls[m, n].from_dict({(0, 0): 1})
-        assert mat != null
-        assert mat[0, 0] == 1
-
     # Conversions
     def test_conversion_to_dict(self, M1):
         D = M1.as_dict()
@@ -73,15 +66,6 @@ class MatrixInterface:
         cp = M1.copy(A00=42)
         assert cp[0, 0] == 42
         assert M1 == cp.copy(A00=M1[0, 0])
-
-    # Shape transformations
-    @pytest.mark.skip
-    def test_append_column(self, M1, shape):
-        m, n = shape
-        col = M1.col(0)
-        M2 = M1.append_col(col)
-        assert M2.shape == (m, n + 1)
-        assert M2[0, n] == col[0]
 
 
 class SquareMatrixInterface:
